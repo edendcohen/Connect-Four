@@ -13,6 +13,7 @@ class Board {
     #totalMoves;
     #board;
     #turnsRemaining;
+    gameLog;
 
     constructor(rows, cols, winSequence) {
         //error handling
@@ -38,11 +39,33 @@ class Board {
 
     }
 
+    clone()
+    {
+        var newBoard = new Board(this.#rows, this.#cols, this.#winSequence);
+
+        newBoard.#whiteMoves = this.#whiteMoves;
+        newBoard.#totalMoves = this.#totalMoves;
+        newBoard.#turnsRemaining = this.#turnsRemaining;
+        newBoard.gameLog = this.gameLog;
+
+        //clone the board itself
+        newBoard.#board = new Array(this.#rows);       
+        for (let r = 0; r < this.#rows; r++) 
+        {
+            newBoard.#board[r] = new Array(this.#cols);
+            for (let c = 0; c < this.#cols; c++)
+                newBoard.#board[r][c] = this.#board[r][c];
+        }
+
+        return newBoard;
+    }
+
     reset()
     {
         this.#totalMoves = 0;
         this.#whiteMoves = true;
         this.#turnsRemaining = this.#cols * this.#rows;
+        this.gameLog = new Array();
         
         this.#board = new Array(this.#rows);
         
@@ -327,13 +350,42 @@ class Board {
             if (this.#board[r][column] === EMPTY)
             {
                 this.#board[r][column] = (this.#whiteMoves) ? WHITE : BLACK;
+                
+                this.gameLog.push({white:this.#whiteMoves, row:r, col:column}); //add move to game log
+
                 this.#whiteMoves = !this.#whiteMoves;
+                this.#totalMoves++;
                 this.#turnsRemaining--;
                 return;
             }
         }
 
         throw 'InvalidMove';
+    }
+
+    /**
+     * Takes back the last move played and returns true if succeeded
+     */
+    takeback()
+    {
+        if (this.#totalMoves > 0)
+        {
+            console.assert(this.gameLog.length > 0);
+            var lastMove = this.gameLog.pop(); //pop the last move from the log
+            var lastRow = lastMove.row;
+            var lastCol = lastMove.col;
+
+            console.assert(this.#board[lastRow][lastCol] !== EMPTY);
+
+            this.#board[lastRow][lastCol] = EMPTY; //turn last cell back to EMPTY state
+            this.#whiteMoves = !this.#whiteMoves; //change side
+            this.#totalMoves--;
+            this.#turnsRemaining ++;
+
+            return true;
+        }
+
+        return false;
     }
 }
 
@@ -368,18 +420,23 @@ var game = new Board(6, 7, 4);
  game.move(6);
  game.move(6);
 
-// try {
-//     game.move(8);
-// } catch (exception) {
-//     console.log("Got exception: " + exception);
-// }
+console.log(game.display());
 
+game.takeback();
+game.takeback();
+game.takeback();
+game.takeback();
+game.takeback();
+game.takeback();
+game.takeback();
 
 console.log(game.display());
 
-let sideWhite = true;
-let SeqLength = 2;
+var game2 = game.clone();
+console.log(game2.display());
 
-console.log(`${sideWhite?"White":"Black"}, Length: ${SeqLength}, Result: ${game.findSeqInDiag(sideWhite, SeqLength)}`);
+// let sideWhite = true;
+// let SeqLength = 2;
 
-console.log(`${game.isWhiteMove()?"White":"Black"}'s move. White moves remaining: ${game.getTurnsRemaining(true)}, Black moves remaining: ${game.getTurnsRemaining(false)}.`);
+
+// console.log(`${game.isWhiteMove()?"White":"Black"}'s move. White moves remaining: ${game.getTurnsRemaining(true)}, Black moves remaining: ${game.getTurnsRemaining(false)}.`);
