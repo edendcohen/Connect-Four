@@ -2,6 +2,8 @@ const MAX_SIZE = 10;
 const EMPTY = 0;
 const WHITE = 1;
 const BLACK = -100;
+const DRAW = 0;
+const ONGOING = -1;
 
 
 class Board {
@@ -11,7 +13,7 @@ class Board {
     #winSequence;
     #whiteMoves;
     #totalMoves;
-    #board;
+    board;
     #turnsRemaining;
     gameLog;
 
@@ -49,12 +51,12 @@ class Board {
         newBoard.gameLog = this.gameLog;
 
         //clone the board itself
-        newBoard.#board = new Array(this.#rows);       
+        newBoard.board = new Array(this.#rows);       
         for (let r = 0; r < this.#rows; r++) 
         {
-            newBoard.#board[r] = new Array(this.#cols);
+            newBoard.board[r] = new Array(this.#cols);
             for (let c = 0; c < this.#cols; c++)
-                newBoard.#board[r][c] = this.#board[r][c];
+                newBoard.board[r][c] = this.board[r][c];
         }
 
         return newBoard;
@@ -67,36 +69,18 @@ class Board {
         this.#turnsRemaining = this.#cols * this.#rows;
         this.gameLog = new Array();
         
-        this.#board = new Array(this.#rows);
+        this.board = new Array(this.#rows);
         
         for (let r = 0; r < this.#rows; r++) {
-            this.#board[r] = new Array(this.#cols);
+            this.board[r] = new Array(this.#cols);
             for (let c = 0; c < this.#cols; c++)
-                this.#board[r][c] = EMPTY;
+                this.board[r][c] = EMPTY;
         }
     }
 
     isWhiteMove()
     {
         return this.#whiteMoves;
-    }
-
-    isDraw()
-    {
-        if (this.isWin())
-            return false;
-
-        for (let r = this.#rows - 1; r >= 0; r--) {
-        
-            for (let c = 0; c < this.#cols; c++)
-            {
-                if (this.#board[r][c] === EMPTY)
-                    return false;
-            }
-        }
-
-        // No empty square found, so draw
-        return true;
     }
     
     display()
@@ -114,7 +98,7 @@ class Board {
                 else
                 {
                     let outputChar;
-                    switch(this.#board[r][c])
+                    switch(this.board[r][c])
                     {
                         case EMPTY:
                             outputChar = '-';
@@ -190,7 +174,7 @@ class Board {
                 let emptyCells = 0;
                 for (let i = col; i < col + this.#winSequence; i++)
                 {
-                    let thisCell = this.#board[row][i];
+                    let thisCell = this.board[row][i];
                     sum += thisCell;
                     if (thisCell === EMPTY)
                         emptyCells++;
@@ -208,7 +192,7 @@ class Board {
         return count;
     }
 
-    #findSeqInCol(sideWhite, seqLength)
+    findSeqInCol(sideWhite, seqLength)
     {
         console.assert((seqLength <= this.#winSequence) && (seqLength > 0));
 
@@ -226,7 +210,7 @@ class Board {
                 let emptyCells = 0;
                 for (let i = row; i < row + this.#winSequence; i++)
                 {
-                    let thisCell = this.#board[i][col];
+                    let thisCell = this.board[i][col];
                     sum += thisCell;
                     if (thisCell === EMPTY)
                         emptyCells++;
@@ -261,7 +245,7 @@ class Board {
                 let emptyCells = 0;
                 for (let i = 0; i < this.#winSequence; i++)
                 {
-                    let thisCell = this.#board[row - i][col + i];
+                    let thisCell = this.board[row - i][col + i];
                     sum += thisCell;
                     if (thisCell === EMPTY)
                         emptyCells++;
@@ -286,7 +270,7 @@ class Board {
                 let emptyCells = 0;
                 for (let i = 0; i < this.#winSequence; i++)
                 {
-                    let thisCell = this.#board[row + i][col + i];
+                    let thisCell = this.board[row + i][col + i];
                     sum += thisCell;
                     if (thisCell === EMPTY)
                         emptyCells++;
@@ -303,34 +287,41 @@ class Board {
         return count;
     }
 
-    //returns true iff the side that has just played has a winning sequence
-    isWin()
+    /**
+     * Returns the game's outcome:
+     * WHITE - white won
+     * BLACK - black won
+     * DRAW - draw
+     * ONGOING - game not over
+     */
+    getOutcome()
     {
-        if (!this.#whiteMoves, this.#findSeqInRow(this.#winSequence) > 0)
-            return true;
+        if (this.#findSeqInRow(!this.#whiteMoves, this.#winSequence) > 0)
+            return this.#whiteMoves ? BLACK : WHITE;
 
-        if (!this.#whiteMoves, this.#findSeqInCol(this.#winSequence) > 0)
-            return true;
+        if (this.findSeqInCol(!this.#whiteMoves, this.#winSequence) > 0)
+            return this.#whiteMoves ? BLACK : WHITE;
 
-        if (!this.#whiteMoves, this.#findSeqInDiag(this.#winSequence) > 0)
-            return true;
+        if (this.#findSeqInDiag(!this.#whiteMoves, this.#winSequence) > 0)
+            return this.#whiteMoves ? BLACK : WHITE;
 
-        return false;
+        if (this.#turnsRemaining === 0)
+            return DRAW;
+
+        return ONGOING;
     }
-
-
 
     // Returns an array of all legal moves (by column numbers), or null if none.
     getLegalMoves()
     {
-        if (this.isWin())
+        if (this.getOutcome() != ONGOING)
             return null;
 
         var movesList = new Array();
         
         for (let c = 0; c < this.#cols; c++)
         {
-            if (this.#board[this.#rows - 1][c] === EMPTY)
+            if (this.board[this.#rows - 1][c] === EMPTY)
             {
                 movesList.push(c);
             }
@@ -339,7 +330,8 @@ class Board {
         return movesList;
     }
     
-    // Throws Exception if move not possible, or makes the move if it's possible.
+    // Throws Exception if move not possible, or makes the move if it's possible (and returns true).
+    // !!! ASSUMES THE GAME IS ONGOING
     move(column)
     {
         if ((column < 0) || (column >= this.#cols))
@@ -347,20 +339,22 @@ class Board {
 
         for (let r = 0; r < this.#rows; r++)
         {
-            if (this.#board[r][column] === EMPTY)
+            if (this.board[r][column] === EMPTY)
             {
-                this.#board[r][column] = (this.#whiteMoves) ? WHITE : BLACK;
+                this.board[r][column] = (this.#whiteMoves) ? WHITE : BLACK;
                 
                 this.gameLog.push({white:this.#whiteMoves, row:r, col:column}); //add move to game log
 
                 this.#whiteMoves = !this.#whiteMoves;
                 this.#totalMoves++;
                 this.#turnsRemaining--;
-                return;
+
+                return true;
             }
         }
 
         throw 'InvalidMove';
+        return false;
     }
 
     /**
@@ -375,9 +369,9 @@ class Board {
             var lastRow = lastMove.row;
             var lastCol = lastMove.col;
 
-            console.assert(this.#board[lastRow][lastCol] !== EMPTY);
+            console.assert(this.board[lastRow][lastCol] !== EMPTY);
 
-            this.#board[lastRow][lastCol] = EMPTY; //turn last cell back to EMPTY state
+            this.board[lastRow][lastCol] = EMPTY; //turn last cell back to EMPTY state
             this.#whiteMoves = !this.#whiteMoves; //change side
             this.#totalMoves--;
             this.#turnsRemaining ++;
@@ -389,54 +383,45 @@ class Board {
     }
 }
 
+const COLUMNS = 4;
+const ROWS = 4;
+const WIN = 4;
 
+var game = new Board(ROWS, COLUMNS, WIN);
 
-var game = new Board(6, 7, 4);
+var readlineSync = require('readline-sync');
 
- game.move(1);
-  game.move(1);
- game.move(4);
- game.move(0);
- game.move(4);
- game.move(4);
- game.move(0);
- game.move(3);
- //game.move(3);
- game.move(5);
- game.move(1);
- game.move(1);
- game.move(0);
- game.move(1);
- game.move(1);
- game.move(4);
- game.move(0);
- game.move(4);
- game.move(2);
- game.move(5);
- game.move(6);
- game.move(5);
- game.move(6);
- game.move(6);
- game.move(6);
- game.move(6);
+var outcome;
 
+do 
+{
+    console.clear();
+    console.log(game.display());
+
+    // Wait for user's response.
+    let col = readlineSync.question(`${game.isWhiteMove() ? "White" : "Black"}'s move. Column? `);
+
+    try
+    {
+        var win = game.move(col);
+    }
+    catch (exception)
+    {
+        readlineSync.question("This is an invalid move. Press <enter> to retry.");
+    }
+
+    outcome = game.getOutcome();
+
+} while (outcome === ONGOING);
+
+console.clear();
 console.log(game.display());
 
-game.takeback();
-game.takeback();
-game.takeback();
-game.takeback();
-game.takeback();
-game.takeback();
-game.takeback();
-
-console.log(game.display());
-
-var game2 = game.clone();
-console.log(game2.display());
-
-// let sideWhite = true;
-// let SeqLength = 2;
-
-
-// console.log(`${game.isWhiteMove()?"White":"Black"}'s move. White moves remaining: ${game.getTurnsRemaining(true)}, Black moves remaining: ${game.getTurnsRemaining(false)}.`);
+if (outcome === DRAW)
+    console.log("The game is a draw!")
+else if (outcome === WHITE)
+    console.log("White won!")
+else if (outcome === BLACK)
+    console.log("Black won!")
+else
+    throw "Unknown Outcome";
