@@ -3,6 +3,8 @@ const MIN_SIZE = 3;
 const EMPTY = 0;
 const WHITE = 1;
 const BLACK = -100;
+const WHITE_WIN = 10000;
+const BLACK_WIN = -10000;
 const DRAW = 0;
 const ONGOING = -1;
 
@@ -16,6 +18,7 @@ class Board {
     #totalMoves;
     board;
     #turnsRemaining;
+    outcome;
     gameLog;
 
     constructor(rows, cols, winSequence) {
@@ -52,7 +55,8 @@ class Board {
         newBoard.#whiteMoves = this.#whiteMoves;
         newBoard.#totalMoves = this.#totalMoves;
         newBoard.#turnsRemaining = this.#turnsRemaining;
-        newBoard.gameLog = this.gameLog;
+        newBoard.gameLog = this.gameLog.slice();
+        newBoard.outcome = this.outcome;
 
         //clone the board itself
         newBoard.board = new Array(this.#rows);       
@@ -74,6 +78,7 @@ class Board {
         this.#totalMoves = 0;
         this.#whiteMoves = true;
         this.#turnsRemaining = this.#cols * this.#rows;
+        this.outcome = ONGOING;
         this.gameLog = new Array();
         
         this.board = new Array(this.#rows);
@@ -312,15 +317,15 @@ class Board {
 
     /**
      * Returns the game's outcome:
-     * WHITE - white won
-     * BLACK - black won
+     * WHITE_WIN - white won
+     * BLACK_WIN - black won
      * DRAW - draw
      * ONGOING - game not over
      */
-    getOutcome()
+    #getOutcome()
     {
         if (this.#findAllSeq(!this.#whiteMoves, this.#winSequence) > 0)
-            return this.#whiteMoves ? BLACK : WHITE;
+            return this.#whiteMoves ? BLACK_WIN : WHITE_WIN;
 
         if (this.#turnsRemaining === 0)
             return DRAW;
@@ -331,7 +336,7 @@ class Board {
     // Returns an array of all legal moves (by column numbers), or null if none.
     getLegalMoves()
     {
-        if (this.getOutcome() != ONGOING)
+        if (this.outcome != ONGOING)
             return null;
 
         var movesList = new Array();
@@ -354,6 +359,9 @@ class Board {
         if ((column < 0) || (column >= this.#cols))
             throw 'OutOfRange';
 
+        if (this.outcome != ONGOING)
+            throw 'GameOver';
+
         for (let r = 0; r < this.#rows; r++)
         {
             if (this.board[r][column] === EMPTY)
@@ -365,6 +373,8 @@ class Board {
                 this.#whiteMoves = !this.#whiteMoves;
                 this.#totalMoves++;
                 this.#turnsRemaining--;
+
+                this.outcome = this.#getOutcome();
 
                 return true;
             }
@@ -392,6 +402,7 @@ class Board {
             this.#whiteMoves = !this.#whiteMoves; //change side
             this.#totalMoves--;
             this.#turnsRemaining ++;
+            this.outcome = ONGOING; //if the game was over before the last move, it would not be possible to get here
             return true;
         }
 
@@ -434,32 +445,25 @@ class Board {
 
 
     /**
-     * Returns a float value from -1 to 1 describing which side has a stronger position.
-     * -1 = black wins
+     * Returns a value denoting whose board position is stronger (white/black).
+     * A higher positive number is better for white. A lower negative number is better for black.
+     * 
+     * BLACK_WIN = black wins
      * 0 = balanced position or draw.
-     * 1 = white wins
+     * WHITE_WIN = white wins
      */
     assessment()
     {
-        
-        switch (this.getOutcome)
-        {
-            case WHITE:
-                return 1;
-                break;
+        // return a quick result if it's game over
+        if (this.outcome != ONGOING)
+            return this.outcome;
 
-            case BLACK:
-                return -1;
-                break;
-
-            case DRAW:
-                return 0;
-                break;
-        }
-
+        var remainingWhite = this.getTurnsRemaining(true);
+        var remainingBlack = this.getTurnsRemaining(false);
+        var totalTurns = this.#cols * this.#rows;
+        var turnsTaken = totalTurns - this.#turnsRemaining;
         var whitePoints = 0;
         var blackPoints = 0;
-        var totalPoints = 0;
 
         for (let r = 0; r < this.#rows; r++) 
             for (let c = 0; c < this.#cols; c++)
@@ -486,62 +490,96 @@ class Board {
                 {
                     blackPoints += points + blacks - whites;
                 }  
-                
-                totalPoints += points;
             }
 
-        
-              
-        
-        console.log(`White points: ${whitePoints}/${totalPoints}`);
-        console.log(`Black points: ${blackPoints}/${totalPoints}`);
-        
-        return 0; ///!!!!
+        // adjust the advantage based on who has more turns to go
+        let advantageFactor = (1 / this.#turnsRemaining);
 
-        var score = 0;
-        var remainingWhite = this.getTurnsRemaining(true);
-        var remainingBlack = this.getTurnsRemaining(false);
-        var totalTurns = this.#cols * this.#rows;
-        var turnsTaken = totalTurns - this.#turnsRemaining;
+        if (remainingBlack > remainingWhite)
+            blackPoints *= (1 + advantageFactor);
+        else if (remainingWhite > remainingBlack)
+            whitePoints *= (1 + advantageFactor);
+        else //same number of moves remaining
+        {
+            // give a slight first-movers advantage
+            if (this.#whiteMoves)
+                whitePoints *= (1 + advantageFactor / 3);
+            else
+                blackPoints *= (1 + advantageFactor / 3);
+        }
         
         // go through all sequences of length 2 until (but lower than) winSequence
         for (let i = this.#winSequence - 1; i >= 2; i--)
         {
-            let whiteSequences = this.#findAllSeq(true, i);
-            let blackSequences = this.#findAllSeq(false, i);
-
-            // if it can be over in one move
-            if (i === this.#winSequence - 1)
-            {
-                if ((whiteSequences > blackSequences) & this.#whiteMoves)
-                    return 1;
-                
-                if ((blackSequences > whiteSequences) & !this.#whiteMoves)
-                    return -1;
-            }
-
-            score += ((whiteSequences - blackSequences) * (i / this.#winSequence)) / this.#getMaxSequences();
+            whitePoints += Math.pow(this.#findAllSeq(true, i), 3);
+            blackPoints += Math.pow(this.#findAllSeq(false, i), 3);
         }
 
-        // adjust score by the remaining moves on the board (fewer remaining moves mean greater advantage)
-        score = score * Math.sqrt(turnsTaken / totalTurns);
-
-        // move score slight according to who has the next turn, and out of how many turns that is
-        if (remainingWhite > remainingBlack)
-        {
-            score += (1 - score) * (1 / this.#turnsRemaining);
-
-        }
-        else if (remainingBlack > remainingWhite)
-        {
-            score -= (score + 1)  * (1 / this.#turnsRemaining);
-        }
-
-        return score;
+        return whitePoints - blackPoints;
     }
+
+    /**
+     * Returns what it thinks is the best move for the currently playing side using ply number of recursive assessments, as well as the assessment of this position.
+     *      * 
+     * If the game is already over, returns null as the best move.
+     * 
+     * @param {*} ply 0 will return an assessment of the current sitaution without looking ahead
+     */
+    play(ply)
+    {
+        var bestMove = null;
+        var assessment;
+        
+        if (ply == 0)
+        {
+            assessment = this.assessment();
+        }
+        else if (this.outcome != ONGOING)
+        {
+            assessment = this.outcome;
+        }
+        else //game ongoing and ply >= 1
+        {
+            let legalMoves = this.getLegalMoves();
+            assessment = (this.#whiteMoves) ? BLACK_WIN : WHITE_WIN;
+
+            for (const move of legalMoves)
+            {
+                let tempBoard = this.clone();
+                tempBoard.move(move);
+
+                const advisedPlay = tempBoard.play(ply - 1);
+                //const {advisedMove, potentialAssessment} = tempBoard.play(ply - 1);
+
+                if (this.#whiteMoves)
+                {
+                    if (advisedPlay.bestAssessment > assessment)
+                    {
+                        bestMove = move;
+                        assessment = advisedPlay.bestAssessment;
+                    }
+                }
+                else // black
+                {
+                    if (advisedPlay.bestAssessment < assessment)
+                    {
+                        bestMove = move;
+                        assessment = advisedPlay.bestAssessment;
+                    }
+                }
+            }
+            // no best move found - pick random
+            if (bestMove == null)
+            {
+                bestMove = legalMoves[Math.floor(Math.random() * legalMoves.length)];
+            }
+        }
+        
+        return {advisedMove: bestMove, bestAssessment: assessment};
+    } //play
 }
 
-const COLUMNS = 6;
+const COLUMNS = 7;
 const ROWS = 6;
 const WIN = 4;
 
@@ -572,24 +610,35 @@ do
         }
         else
             game.move(col);
+
+            if (game.outcome == ONGOING)
+            {
+                let ply = 3;
+                let pcMove = game.play(ply).advisedMove;
+                readlineSync.question(`I will respond by moving at column ${pcMove}. Press <enter>`);
+                game.move(pcMove);
+            }       
+            
     }
     catch (exception)
     {
         readlineSync.question("This is an invalid move. Press <enter> to retry.");
     }
 
-    var outcome = game.getOutcome();
-
-} while (outcome === ONGOING);
+} while (game.outcome === ONGOING);
 
 console.clear();
 console.log(game.display());
 
-if (outcome === DRAW)
+if (game.outcome === DRAW)
     console.log("The game is a draw!")
-else if (outcome === WHITE)
+else if (game.outcome === WHITE_WIN)
     console.log("White won!")
-else if (outcome === BLACK)
+else if (game.outcome === BLACK_WIN)
     console.log("Black won!")
 else
     throw "Unknown Outcome";
+
+readlineSync.question("Press <enter> to end.");
+
+console.log(game.gameLog);
