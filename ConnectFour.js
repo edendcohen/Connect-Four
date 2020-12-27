@@ -1,4 +1,5 @@
 const MAX_SIZE = 10;
+const MIN_SIZE = 3;
 const EMPTY = 0;
 const WHITE = 1;
 const BLACK = -100;
@@ -19,7 +20,7 @@ class Board {
 
     constructor(rows, cols, winSequence) {
         //error handling
-        if ((rows <= 0) || (cols <= 0))
+        if ((rows <= MIN_SIZE) || (cols <= MIN_SIZE))
             throw 'BoardTooSmall';
 
         if ((rows > MAX_SIZE) || (cols > MAX_SIZE))
@@ -41,6 +42,9 @@ class Board {
 
     }
 
+    /**
+     * Returns a new board with an identical context.
+     */
     clone()
     {
         var newBoard = new Board(this.#rows, this.#cols, this.#winSequence);
@@ -62,6 +66,9 @@ class Board {
         return newBoard;
     }
 
+    /**
+     * Resets the board to an initial position (without changing its size and other properties defined when the object was created)
+     */
     reset()
     {
         this.#totalMoves = 0;
@@ -154,6 +161,19 @@ class Board {
             
     }
     
+    /**
+     * Max number of sequences possible on this board size 
+     */
+    #getMaxSequences()
+    {
+        var count = (this.#cols - this.#winSequence + 1) * this.#rows; //horizontals
+
+        count += (this.#rows - this.#winSequence + 1) * this.#cols; //verticals
+
+        count += (2 * (this.#cols - this.#winSequence + 1) * (this.#rows - this.#winSequence + 1)); //diagnoals
+
+        return count;
+     }
 
     // Returns how many partial rows of seqLength length the requested side has which currently are, or can potentially be extended to winSequence length.
     #findSeqInRow(sideWhite, seqLength)
@@ -192,7 +212,7 @@ class Board {
         return count;
     }
 
-    findSeqInCol(sideWhite, seqLength)
+    #findSeqInCol(sideWhite, seqLength)
     {
         console.assert((seqLength <= this.#winSequence) && (seqLength > 0));
 
@@ -282,9 +302,12 @@ class Board {
                         count++;
             }
         }
-
-
         return count;
+    }
+
+    #findAllSeq(sideWhite, seqLength)
+    {
+        return this.#findSeqInRow(sideWhite, seqLength) + this.#findSeqInCol(sideWhite, seqLength) + this.#findSeqInDiag(sideWhite, seqLength);
     }
 
     /**
@@ -296,13 +319,7 @@ class Board {
      */
     getOutcome()
     {
-        if (this.#findSeqInRow(!this.#whiteMoves, this.#winSequence) > 0)
-            return this.#whiteMoves ? BLACK : WHITE;
-
-        if (this.findSeqInCol(!this.#whiteMoves, this.#winSequence) > 0)
-            return this.#whiteMoves ? BLACK : WHITE;
-
-        if (this.#findSeqInDiag(!this.#whiteMoves, this.#winSequence) > 0)
+        if (this.#findAllSeq(!this.#whiteMoves, this.#winSequence) > 0)
             return this.#whiteMoves ? BLACK : WHITE;
 
         if (this.#turnsRemaining === 0)
@@ -375,42 +392,193 @@ class Board {
             this.#whiteMoves = !this.#whiteMoves; //change side
             this.#totalMoves--;
             this.#turnsRemaining ++;
-
             return true;
         }
 
         return false;
     }
+
+    /**
+     * Gets a location of a cell, and returns values denoting the count of the neighbors: total, whites, blacks, empties.
+     */
+    getNeighbors(row, col)
+    {
+        var empties = 0;
+        var whites = 0;
+        var blacks = 0;
+        
+        console.assert((col >= 0) && (row >= 0) && (col <= this.#cols) && (row <= this.#rows));
+
+        for (let r = Math.max(row - 1,0); r <= Math.min(row + 1, this.#rows - 1); r++)
+        {
+            for (let c = Math.max(col - 1,0); c <= Math.min(col + 1, this.#cols - 1); c++)
+            {
+                if ((r == row) && (c == col))
+                    continue;
+
+                switch(this.board[r][c])
+                {
+                    case WHITE:
+                        whites++;
+                        break;
+                    case BLACK:
+                        blacks++;
+                        break;
+                    default:
+                        empties++;
+                }
+            }
+        }
+            return {whites, blacks, empties};
+    }
+
+
+    /**
+     * Returns a float value from -1 to 1 describing which side has a stronger position.
+     * -1 = black wins
+     * 0 = balanced position or draw.
+     * 1 = white wins
+     */
+    assessment()
+    {
+        
+        switch (this.getOutcome)
+        {
+            case WHITE:
+                return 1;
+                break;
+
+            case BLACK:
+                return -1;
+                break;
+
+            case DRAW:
+                return 0;
+                break;
+        }
+
+        var whitePoints = 0;
+        var blackPoints = 0;
+        var totalPoints = 0;
+
+        for (let r = 0; r < this.#rows; r++) 
+            for (let c = 0; c < this.#cols; c++)
+            {
+                let {whites, blacks, empties} = this.getNeighbors(r,c);
+                let points = 0;
+
+                if (r < this.#rows / 2)
+                    points += r;
+                else 
+                    points += this.#rows - r;
+                
+                if (c < this.#cols / 2)
+                    points += c;
+                else 
+                    points += this.#cols - c;
+            
+                if (this.board[r][c] === WHITE)
+                {
+                    whitePoints += points + whites - blacks;
+                    
+                }   
+                else if (this.board[r][c] === BLACK)
+                {
+                    blackPoints += points + blacks - whites;
+                }  
+                
+                totalPoints += points;
+            }
+
+        
+              
+        
+        console.log(`White points: ${whitePoints}/${totalPoints}`);
+        console.log(`Black points: ${blackPoints}/${totalPoints}`);
+        
+        return 0; ///!!!!
+
+        var score = 0;
+        var remainingWhite = this.getTurnsRemaining(true);
+        var remainingBlack = this.getTurnsRemaining(false);
+        var totalTurns = this.#cols * this.#rows;
+        var turnsTaken = totalTurns - this.#turnsRemaining;
+        
+        // go through all sequences of length 2 until (but lower than) winSequence
+        for (let i = this.#winSequence - 1; i >= 2; i--)
+        {
+            let whiteSequences = this.#findAllSeq(true, i);
+            let blackSequences = this.#findAllSeq(false, i);
+
+            // if it can be over in one move
+            if (i === this.#winSequence - 1)
+            {
+                if ((whiteSequences > blackSequences) & this.#whiteMoves)
+                    return 1;
+                
+                if ((blackSequences > whiteSequences) & !this.#whiteMoves)
+                    return -1;
+            }
+
+            score += ((whiteSequences - blackSequences) * (i / this.#winSequence)) / this.#getMaxSequences();
+        }
+
+        // adjust score by the remaining moves on the board (fewer remaining moves mean greater advantage)
+        score = score * Math.sqrt(turnsTaken / totalTurns);
+
+        // move score slight according to who has the next turn, and out of how many turns that is
+        if (remainingWhite > remainingBlack)
+        {
+            score += (1 - score) * (1 / this.#turnsRemaining);
+
+        }
+        else if (remainingBlack > remainingWhite)
+        {
+            score -= (score + 1)  * (1 / this.#turnsRemaining);
+        }
+
+        return score;
+    }
 }
 
-const COLUMNS = 4;
-const ROWS = 4;
+const COLUMNS = 6;
+const ROWS = 6;
 const WIN = 4;
 
 var game = new Board(ROWS, COLUMNS, WIN);
 
 var readlineSync = require('readline-sync');
 
-var outcome;
-
 do 
 {
     console.clear();
     console.log(game.display());
+
+    console.log("Evaluation: " + game.assessment());
 
     // Wait for user's response.
     let col = readlineSync.question(`${game.isWhiteMove() ? "White" : "Black"}'s move. Column? `);
 
     try
     {
-        var win = game.move(col);
+        if ((col == 't') || (col == 'T'))
+            game.takeback();
+        else if ((col == 'q') || (col == 'Q'))
+            process.exit(1);
+        else if ((col == 'r') || (col == 'R'))
+        {
+            game.reset();
+
+        }
+        else
+            game.move(col);
     }
     catch (exception)
     {
         readlineSync.question("This is an invalid move. Press <enter> to retry.");
     }
 
-    outcome = game.getOutcome();
+    var outcome = game.getOutcome();
 
 } while (outcome === ONGOING);
 
