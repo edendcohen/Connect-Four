@@ -20,6 +20,7 @@ class Board {
     #turnsRemaining;
     outcome;
     gameLog;
+    debugBoard;
 
     constructor(rows, cols, winSequence) {
         //error handling
@@ -368,13 +369,15 @@ class Board {
             {
                 this.board[r][column] = (this.#whiteMoves) ? WHITE : BLACK;
                 
-                this.gameLog.push({white:this.#whiteMoves, row:r, col:column}); //add move to game log
+                this.gameLog.push({side:this.#whiteMoves?"White":"Black", column:parseInt(column,10)}); //add move to game log
 
                 this.#whiteMoves = !this.#whiteMoves;
                 this.#totalMoves++;
                 this.#turnsRemaining--;
 
                 this.outcome = this.#getOutcome();
+
+                this.debugBoard = this.display();
 
                 return true;
             }
@@ -403,6 +406,8 @@ class Board {
             this.#totalMoves--;
             this.#turnsRemaining ++;
             this.outcome = ONGOING; //if the game was over before the last move, it would not be possible to get here
+            this.debugBoard = this.display();
+
             return true;
         }
 
@@ -520,12 +525,12 @@ class Board {
 
     /**
      * Returns what it thinks is the best move for the currently playing side using ply number of recursive assessments, as well as the assessment of this position.
-     *      * 
      * If the game is already over, returns null as the best move.
      * 
      * @param {*} ply 0 will return an assessment of the current sitaution without looking ahead
+     * @param {*} first pass true if calling to this function externally (as opposed to recursive calls) - for diagnostics only
      */
-    play(ply)
+    play(ply, first)
     {
         var bestMove = null;
         var assessment;
@@ -537,20 +542,24 @@ class Board {
         else if (this.outcome != ONGOING)
         {
             assessment = this.outcome;
+
+            if (assessment == WHITE_WIN)
+                assessment += ply;
+                
+            else if (assessment == BLACK_WIN)
+                assessment -= ply;
         }
         else //game ongoing and ply >= 1
         {
             let legalMoves = this.getLegalMoves();
-            assessment = (this.#whiteMoves) ? BLACK_WIN : WHITE_WIN;
+            assessment = (this.#whiteMoves) ? (BLACK_WIN - ply) : (WHITE_WIN + ply);
 
             for (const move of legalMoves)
-            {
+            {               
                 let tempBoard = this.clone();
                 tempBoard.move(move);
-
-                const advisedPlay = tempBoard.play(ply - 1);
-                //const {advisedMove, potentialAssessment} = tempBoard.play(ply - 1);
-
+                const advisedPlay = tempBoard.play(ply - 1, false);
+                                
                 if (this.#whiteMoves)
                 {
                     if (advisedPlay.bestAssessment > assessment)
@@ -558,6 +567,8 @@ class Board {
                         bestMove = move;
                         assessment = advisedPlay.bestAssessment;
                     }
+                    // if (assessment >= WHITE_WIN) //save time as optimal move already found
+                    // break;
                 }
                 else // black
                 {
@@ -566,10 +577,18 @@ class Board {
                         bestMove = move;
                         assessment = advisedPlay.bestAssessment;
                     }
+                    // if (assessment <= BLACK_WIN) //save time as optimal move already found
+                    //     break;
                 }
+
+                
+
+                // let ret = this.takeback();
+                // console.assert(ret);
             }
-            // no best move found - pick random
-            if (bestMove == null)
+
+            // no best move found - pick one at random
+            if (bestMove === null)
             {
                 bestMove = legalMoves[Math.floor(Math.random() * legalMoves.length)];
             }
@@ -578,6 +597,9 @@ class Board {
         return {advisedMove: bestMove, bestAssessment: assessment};
     } //play
 }
+
+// --------------------------------------------------------------------------------------------------------------------------------
+
 
 const COLUMNS = 7;
 const ROWS = 6;
@@ -613,9 +635,11 @@ do
 
             if (game.outcome == ONGOING)
             {
-                let ply = 3;
-                let pcMove = game.play(ply).advisedMove;
-                readlineSync.question(`I will respond by moving at column ${pcMove}. Press <enter>`);
+                let ply = 5;
+                let p1 = Date.now();
+                let pcMove = game.play(ply, true).advisedMove;
+                let p2 = Date.now() - p1;
+                readlineSync.question(`I will respond by moving at column ${pcMove}. Time: ${p2}. Press <enter>`);
                 game.move(pcMove);
             }       
             
