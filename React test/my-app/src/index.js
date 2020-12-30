@@ -2,6 +2,9 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
 
+const COLUMNS = 7;
+const ROWS = 6;
+const WIN = 4;
 
 const MAX_SIZE = 10;
 const MIN_SIZE = 3;
@@ -358,15 +361,15 @@ class Board {
         return movesList;
     }
     
-    // Throws Exception if move not possible, or makes the move if it's possible (and returns true).
-    // !!! ASSUMES THE GAME IS ONGOING
+    // If moves succeeds - returns row 
+    // If move cannot be done, returns null.
     move(column)
     {
         if ((column < 0) || (column >= this.cols))
-            throw 'OutOfRange';
+            return null;
 
         if (this.outcome != ONGOING)
-            throw 'GameOver';
+            return null;
 
         for (let r = 0; r < this.rows; r++)
         {
@@ -384,12 +387,11 @@ class Board {
 
                 this.debugBoard = this.display();
 
-                return true;
+                return r;
             }
         }
 
-        throw 'InvalidMove';
-        return false;
+        return null;
     }
 
     /**
@@ -616,11 +618,11 @@ function Square(props) {
 }
 
 class ReactBoard extends React.Component {
-  renderSquare(i) {
+  renderSquare(r,c) {
     return (
       <Square
-        value={this.props.squares[i]}
-        onClick={() => this.props.onClick(i)}
+        value={this.props.squares[r][c]}
+        onClick={() => this.props.onClick(r,c)}
       />
     );
   }
@@ -629,19 +631,58 @@ class ReactBoard extends React.Component {
     return (
       <div>
         <div className="board-row">
-          {this.renderSquare(0)}
-          {this.renderSquare(1)}
-          {this.renderSquare(2)}
+          {this.renderSquare(5,0)}
+          {this.renderSquare(5,1)}
+          {this.renderSquare(5,2)}
+          {this.renderSquare(5,3)}
+          {this.renderSquare(5,4)}
+          {this.renderSquare(5,5)}
+          {this.renderSquare(5,6)}
         </div>
         <div className="board-row">
-          {this.renderSquare(3)}
-          {this.renderSquare(4)}
-          {this.renderSquare(5)}
+          {this.renderSquare(4,0)}
+          {this.renderSquare(4,1)}
+          {this.renderSquare(4,2)}
+          {this.renderSquare(4,3)}
+          {this.renderSquare(4,4)}
+          {this.renderSquare(4,5)}
+          {this.renderSquare(4,6)}
         </div>
         <div className="board-row">
-          {this.renderSquare(6)}
-          {this.renderSquare(7)}
-          {this.renderSquare(8)}
+          {this.renderSquare(3,0)}
+          {this.renderSquare(3,1)}
+          {this.renderSquare(3,2)}
+          {this.renderSquare(3,3)}
+          {this.renderSquare(3,4)}
+          {this.renderSquare(3,5)}
+          {this.renderSquare(3,6)}
+        </div>
+        <div className="board-row">
+          {this.renderSquare(2,0)}
+          {this.renderSquare(2,1)}
+          {this.renderSquare(2,2)}
+          {this.renderSquare(2,3)}
+          {this.renderSquare(2,4)}
+          {this.renderSquare(2,5)}
+          {this.renderSquare(2,6)}
+        </div>
+        <div className="board-row">
+          {this.renderSquare(1,0)}
+          {this.renderSquare(1,1)}
+          {this.renderSquare(1,2)}
+          {this.renderSquare(1,3)}
+          {this.renderSquare(1,4)}
+          {this.renderSquare(1,5)}
+          {this.renderSquare(1,6)}
+        </div>
+        <div className="board-row">
+          {this.renderSquare(0,0)}
+          {this.renderSquare(0,1)}
+          {this.renderSquare(0,2)}
+          {this.renderSquare(0,3)}
+          {this.renderSquare(0,4)}
+          {this.renderSquare(0,5)}
+          {this.renderSquare(0,6)}
         </div>
       </div>
     );
@@ -651,10 +692,19 @@ class ReactBoard extends React.Component {
 class ReactGame extends React.Component {
   constructor(props) {
     super(props);
+    
+    var squares = new Array(ROWS);       
+    for (let r = 0; r < ROWS; r++) 
+    {
+        squares[r] = new Array(COLUMNS);
+        for (let c = 0; c < squares[r].length; c++)
+            squares[r][c] = null;
+    }
+
     this.state = {
       history: [
         {
-          squares: Array(9).fill(null)
+          squares
         }
       ],
       stepNumber: 0,
@@ -662,14 +712,24 @@ class ReactGame extends React.Component {
     };
   }
 
-  handleClick(i) {
+  handleClick(r,c) {
     const history = this.state.history.slice(0, this.state.stepNumber + 1);
     const current = history[history.length - 1];
     const squares = current.squares.slice();
-    if (calculateWinner(squares) || squares[i]) {
+
+    //Integrate 
+    if (game.outcome !== ONGOING)
+    {
       return;
     }
-    squares[i] = this.state.xIsNext ? "X" : "O";
+
+    let row = game.move(c);
+    if (row == null) //invalid move
+    { 
+      return;
+    }
+    squares[row][c] = this.state.xIsNext ? "⚪" : "⚫";
+
     this.setState({
       history: history.concat([
         {
@@ -691,7 +751,6 @@ class ReactGame extends React.Component {
   render() {
     const history = this.state.history;
     const current = history[this.state.stepNumber];
-    const winner = calculateWinner(current.squares);
 
     const moves = history.map((step, move) => {
       const desc = move ?
@@ -705,18 +764,34 @@ class ReactGame extends React.Component {
     });
 
     let status;
-    if (winner) {
-      status = "Winner: " + winner;
-    } else {
-      status = "Next player: " + (this.state.xIsNext ? "X" : "O");
-    }
+    
+    switch (game.outcome)
+    {
+      case WHITE_WIN:
+        status = "⚪ wins!";
+        break;
+  
+      case BLACK_WIN:
+        status = "⚫ wins!";
+        break;
+          
+      case DRAW:
+        status = "Draw!";
+        break;
+
+      default:
+        status = "Next player: " + (this.state.xIsNext ? "⚪" : "⚫");
+        break;
+
+    } 
+
 
     return (
       <div className="game">
         <div className="game-board">
           <ReactBoard
             squares={current.squares}
-            onClick={i => this.handleClick(i)}
+            onClick={(r,c) => this.handleClick(r,c)}
           />
         </div>
         <div className="game-info">
@@ -730,24 +805,7 @@ class ReactGame extends React.Component {
 
 // ========================================
 
-ReactDOM.render(<ReactGame />, document.getElementById("root"));
 
-function calculateWinner(squares) {
-  const lines = [
-    [0, 1, 2],
-    [3, 4, 5],
-    [6, 7, 8],
-    [0, 3, 6],
-    [1, 4, 7],
-    [2, 5, 8],
-    [0, 4, 8],
-    [2, 4, 6]
-  ];
-  for (let i = 0; i < lines.length; i++) {
-    const [a, b, c] = lines[i];
-    if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
-      return squares[a];
-    }
-  }
-  return null;
-}
+var game = new Board(ROWS, COLUMNS, WIN);
+
+ReactDOM.render(<ReactGame />, document.getElementById("root"));
