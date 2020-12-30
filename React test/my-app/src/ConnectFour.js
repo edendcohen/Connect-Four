@@ -1,8 +1,3 @@
-import React from 'react';
-import ReactDOM from 'react-dom';
-import './index.css';
-
-
 const MAX_SIZE = 10;
 const MIN_SIZE = 3;
 const EMPTY = 0;
@@ -16,13 +11,13 @@ const ONGOING = -1;
 
 class Board {
 
-    rows;
-    cols;
-    winSequence;
-    whiteMoves;
-    totalMoves;
+    #rows;
+    #cols;
+    #winSequence;
+    #whiteMoves;
+    #totalMoves;
     board;
-    turnsRemaining;
+    #turnsRemaining;
     outcome;
     gameLog;
     debugBoard;
@@ -33,7 +28,7 @@ class Board {
             throw 'BoardTooSmall';
 
         if ((rows > MAX_SIZE) || (cols > MAX_SIZE))
-            throw 'BoardTooLarge';
+            throws; 'BoardTooLarge';
 
         if ((winSequence > rows) || (winSequence > cols)) 
             throw 'WinSequenceTooLong';
@@ -42,9 +37,9 @@ class Board {
         if (winSequence <= 1)
             throw 'WinSequenceTooShort';
 
-        this.rows = rows;
-        this.cols = cols;
-        this.winSequence = winSequence;
+        this.#rows = rows;
+        this.#cols = cols;
+        this.#winSequence = winSequence;
 
         //these attributes may change following subsequent games on the same board
         this.reset();
@@ -56,24 +51,24 @@ class Board {
      */
     clone()
     {
-        var newGame = new Board(this.rows, this.cols, this.winSequence);
+        var newBoard = new Board(this.#rows, this.#cols, this.#winSequence);
 
-        newGame.whiteMoves = this.whiteMoves;
-        newGame.totalMoves = this.totalMoves;
-        newGame.turnsRemaining = this.turnsRemaining;
-        newGame.gameLog = this.gameLog.slice();
-        newGame.outcome = this.outcome;
+        newBoard.#whiteMoves = this.#whiteMoves;
+        newBoard.#totalMoves = this.#totalMoves;
+        newBoard.#turnsRemaining = this.#turnsRemaining;
+        newBoard.gameLog = this.gameLog.slice();
+        newBoard.outcome = this.outcome;
 
         //clone the board itself
-        newGame.board = new Array(this.rows);       
-        for (let r = 0; r < this.rows; r++) 
+        newBoard.board = new Array(this.#rows);       
+        for (let r = 0; r < this.#rows; r++) 
         {
-            newGame.board[r] = new Array(this.cols);
-            for (let c = 0; c < this.cols; c++)
-                newGame.board[r][c] = this.board[r][c];
+            newBoard.board[r] = new Array(this.#cols);
+            for (let c = 0; c < this.#cols; c++)
+                newBoard.board[r][c] = this.board[r][c];
         }
 
-        return newGame;
+        return newBoard;
     }
 
     /**
@@ -81,33 +76,33 @@ class Board {
      */
     reset()
     {
-        this.totalMoves = 0;
-        this.whiteMoves = true;
-        this.turnsRemaining = this.cols * this.rows;
+        this.#totalMoves = 0;
+        this.#whiteMoves = true;
+        this.#turnsRemaining = this.#cols * this.#rows;
         this.outcome = ONGOING;
         this.gameLog = new Array();
         
-        this.board = new Array(this.rows);
+        this.board = new Array(this.#rows);
         
-        for (let r = 0; r < this.rows; r++) {
-            this.board[r] = new Array(this.cols);
-            for (let c = 0; c < this.cols; c++)
+        for (let r = 0; r < this.#rows; r++) {
+            this.board[r] = new Array(this.#cols);
+            for (let c = 0; c < this.#cols; c++)
                 this.board[r][c] = EMPTY;
         }
     }
 
     isWhiteMove()
     {
-        return this.whiteMoves;
+        return this.#whiteMoves;
     }
     
     display()
     {
         var output = new String();
 
-        for (let r = this.rows - 1; r >= -1; r--) {
+        for (let r = this.#rows - 1; r >= -1; r--) {
             
-            for (let c = 0; c < this.cols; c++)
+            for (let c = 0; c < this.#cols; c++)
             {
                 if (r === -1)
                 {
@@ -147,24 +142,24 @@ class Board {
     {
         if (sideWhite) //requested for white
         {
-            if (this.whiteMoves)
+            if (this.#whiteMoves)
             {
-                return Math.ceil(this.turnsRemaining / 2);
+                return Math.ceil(this.#turnsRemaining / 2);
             }
             else //black moves
             {
-                return Math.floor(this.turnsRemaining / 2);
+                return Math.floor(this.#turnsRemaining / 2);
             }
         }
         else // requetsed for black
         {
-            if (!this.whiteMoves)
+            if (!this.#whiteMoves)
             {
-                return Math.ceil(this.turnsRemaining / 2);
+                return Math.ceil(this.#turnsRemaining / 2);
             }
             else //white moves
             {
-                return Math.floor(this.turnsRemaining / 2);
+                return Math.floor(this.#turnsRemaining / 2);
             }
         }
 
@@ -175,35 +170,35 @@ class Board {
     /**
      * Max number of sequences possible on this board size 
      */
-    getMaxSequences()
+    #getMaxSequences()
     {
-        var count = (this.cols - this.winSequence + 1) * this.rows; //horizontals
+        var count = (this.#cols - this.#winSequence + 1) * this.#rows; //horizontals
 
-        count += (this.rows - this.winSequence + 1) * this.cols; //verticals
+        count += (this.#rows - this.#winSequence + 1) * this.#cols; //verticals
 
-        count += (2 * (this.cols - this.winSequence + 1) * (this.rows - this.winSequence + 1)); //diagnoals
+        count += (2 * (this.#cols - this.#winSequence + 1) * (this.#rows - this.#winSequence + 1)); //diagnoals
 
         return count;
      }
 
     // Returns how many partial rows of seqLength length the requested side has which currently are, or can potentially be extended to winSequence length.
-    findSeqInRow(sideWhite, seqLength)
+    #findSeqInRow(sideWhite, seqLength)
     {
-        console.assert((seqLength <= this.winSequence) && (seqLength > 0));
+        console.assert((seqLength <= this.#winSequence) && (seqLength > 0));
 
         var row = 0;
         var count = 0;
 
         // Go over each row
-        while (row < this.rows)
+        while (row < this.#rows)
         {
             // Go over each sequence of winSequence cells (with overlaps)
-            for (let col = 0; col <= (this.cols - this.winSequence); col++)
+            for (let col = 0; col <= (this.#cols - this.#winSequence); col++)
             {
                 // count the total value in this subsequence
                 let sum = 0;
                 let emptyCells = 0;
-                for (let i = col; i < col + this.winSequence; i++)
+                for (let i = col; i < col + this.#winSequence; i++)
                 {
                     let thisCell = this.board[row][i];
                     sum += thisCell;
@@ -223,23 +218,23 @@ class Board {
         return count;
     }
 
-    findSeqInCol(sideWhite, seqLength)
+    #findSeqInCol(sideWhite, seqLength)
     {
-        console.assert((seqLength <= this.winSequence) && (seqLength > 0));
+        console.assert((seqLength <= this.#winSequence) && (seqLength > 0));
 
         var col = 0;
         var count = 0;
 
         // Go over each col
-        while (col < this.cols)
+        while (col < this.#cols)
         {
             // Go over each sequence of winSequence cells (with overlaps)
-            for (let row = 0; row <= (this.rows - this.winSequence); row++)
+            for (let row = 0; row <= (this.#rows - this.#winSequence); row++)
             {
                 // count the total value in this subsequence
                 let sum = 0;
                 let emptyCells = 0;
-                for (let i = row; i < row + this.winSequence; i++)
+                for (let i = row; i < row + this.#winSequence; i++)
                 {
                     let thisCell = this.board[i][col];
                     sum += thisCell;
@@ -259,22 +254,22 @@ class Board {
         return count;
     }
     
-    findSeqInDiag(sideWhite, seqLength)
+    #findSeqInDiag(sideWhite, seqLength)
     {
-        console.assert((seqLength <= this.winSequence) && (seqLength > 0));
+        console.assert((seqLength <= this.#winSequence) && (seqLength > 0));
 
         var count = 0;
 
         // Start with the diagonals where col increases as row decreases
-        for (let col = 0; col <= this.cols - this.winSequence; col++)
+        for (let col = 0; col <= this.#cols - this.#winSequence; col++)
         {
             // Go over each sequence of winSequence cells (with overlaps)
-            for (let row = this.rows - 1; row >= this.winSequence - 1; row--)
+            for (let row = this.#rows - 1; row >= this.#winSequence - 1; row--)
             {
                 // count the total value in this subsequence
                 let sum = 0;
                 let emptyCells = 0;
-                for (let i = 0; i < this.winSequence; i++)
+                for (let i = 0; i < this.#winSequence; i++)
                 {
                     let thisCell = this.board[row - i][col + i];
                     sum += thisCell;
@@ -291,15 +286,15 @@ class Board {
 
 
         // Analyze the diagonals where col increases as row increases
-        for (let col = 0; col <= this.cols - this.winSequence; col++)
+        for (let col = 0; col <= this.#cols - this.#winSequence; col++)
         {
             // Go over each sequence of winSequence cells (with overlaps)
-            for (let row = 0; row <= this.rows - this.winSequence; row++)
+            for (let row = 0; row <= this.#rows - this.#winSequence; row++)
             {
                 // count the total value in this subsequence
                 let sum = 0;
                 let emptyCells = 0;
-                for (let i = 0; i < this.winSequence; i++)
+                for (let i = 0; i < this.#winSequence; i++)
                 {
                     let thisCell = this.board[row + i][col + i];
                     sum += thisCell;
@@ -316,9 +311,9 @@ class Board {
         return count;
     }
 
-    findAllSeq(sideWhite, seqLength)
+    #findAllSeq(sideWhite, seqLength)
     {
-        return this.findSeqInRow(sideWhite, seqLength) + this.findSeqInCol(sideWhite, seqLength) + this.findSeqInDiag(sideWhite, seqLength);
+        return this.#findSeqInRow(sideWhite, seqLength) + this.#findSeqInCol(sideWhite, seqLength) + this.#findSeqInDiag(sideWhite, seqLength);
     }
 
     /**
@@ -328,12 +323,12 @@ class Board {
      * DRAW - draw
      * ONGOING - game not over
      */
-    getOutcome()
+    #getOutcome()
     {
-        if (this.findAllSeq(!this.whiteMoves, this.winSequence) > 0)
-            return this.whiteMoves ? BLACK_WIN : WHITE_WIN;
+        if (this.#findAllSeq(!this.#whiteMoves, this.#winSequence) > 0)
+            return this.#whiteMoves ? BLACK_WIN : WHITE_WIN;
 
-        if (this.turnsRemaining === 0)
+        if (this.#turnsRemaining === 0)
             return DRAW;
 
         return ONGOING;
@@ -347,9 +342,9 @@ class Board {
 
         var movesList = new Array();
         
-        for (let c = 0; c < this.cols; c++)
+        for (let c = 0; c < this.#cols; c++)
         {
-            if (this.board[this.rows - 1][c] === EMPTY)
+            if (this.board[this.#rows - 1][c] === EMPTY)
             {
                 movesList.push(c);
             }
@@ -362,25 +357,25 @@ class Board {
     // !!! ASSUMES THE GAME IS ONGOING
     move(column)
     {
-        if ((column < 0) || (column >= this.cols))
+        if ((column < 0) || (column >= this.#cols))
             throw 'OutOfRange';
 
         if (this.outcome != ONGOING)
             throw 'GameOver';
 
-        for (let r = 0; r < this.rows; r++)
+        for (let r = 0; r < this.#rows; r++)
         {
             if (this.board[r][column] === EMPTY)
             {
-                this.board[r][column] = (this.whiteMoves) ? WHITE : BLACK;
+                this.board[r][column] = (this.#whiteMoves) ? WHITE : BLACK;
                 
-                this.gameLog.push({side:this.whiteMoves?"White":"Black", column:parseInt(column,10)}); //add move to game log
+                this.gameLog.push({side:this.#whiteMoves?"White":"Black", column:parseInt(column,10)}); //add move to game log
 
-                this.whiteMoves = !this.whiteMoves;
-                this.totalMoves++;
-                this.turnsRemaining--;
+                this.#whiteMoves = !this.#whiteMoves;
+                this.#totalMoves++;
+                this.#turnsRemaining--;
 
-                this.outcome = this.getOutcome();
+                this.outcome = this.#getOutcome();
 
                 this.debugBoard = this.display();
 
@@ -397,7 +392,7 @@ class Board {
      */
     takeback()
     {
-        if (this.totalMoves > 0)
+        if (this.#totalMoves > 0)
         {
             console.assert(this.gameLog.length > 0);
             var lastMove = this.gameLog.pop(); //pop the last move from the log
@@ -407,9 +402,9 @@ class Board {
             console.assert(this.board[lastRow][lastCol] !== EMPTY);
 
             this.board[lastRow][lastCol] = EMPTY; //turn last cell back to EMPTY state
-            this.whiteMoves = !this.whiteMoves; //change side
-            this.totalMoves--;
-            this.turnsRemaining ++;
+            this.#whiteMoves = !this.#whiteMoves; //change side
+            this.#totalMoves--;
+            this.#turnsRemaining ++;
             this.outcome = ONGOING; //if the game was over before the last move, it would not be possible to get here
             this.debugBoard = this.display();
 
@@ -428,11 +423,11 @@ class Board {
         var whites = 0;
         var blacks = 0;
         
-        console.assert((col >= 0) && (row >= 0) && (col <= this.cols) && (row <= this.rows));
+        console.assert((col >= 0) && (row >= 0) && (col <= this.#cols) && (row <= this.#rows));
 
-        for (let r = Math.max(row - 1,0); r <= Math.min(row + 1, this.rows - 1); r++)
+        for (let r = Math.max(row - 1,0); r <= Math.min(row + 1, this.#rows - 1); r++)
         {
-            for (let c = Math.max(col - 1,0); c <= Math.min(col + 1, this.cols - 1); c++)
+            for (let c = Math.max(col - 1,0); c <= Math.min(col + 1, this.#cols - 1); c++)
             {
                 if ((r == row) && (c == col))
                     continue;
@@ -470,25 +465,26 @@ class Board {
 
         var remainingWhite = this.getTurnsRemaining(true);
         var remainingBlack = this.getTurnsRemaining(false);
-        var totalTurns = this.cols * this.rows;
+        var totalTurns = this.#cols * this.#rows;
+        var turnsTaken = totalTurns - this.#turnsRemaining;
         var whitePoints = 0;
         var blackPoints = 0;
 
-        for (let r = 0; r < this.rows; r++) 
-            for (let c = 0; c < this.cols; c++)
+        for (let r = 0; r < this.#rows; r++) 
+            for (let c = 0; c < this.#cols; c++)
             {
                 let {whites, blacks, empties} = this.getNeighbors(r,c);
                 let points = 0;
 
-                if (r < this.rows / 2)
+                if (r < this.#rows / 2)
                     points += r;
                 else 
-                    points += this.rows - r;
+                    points += this.#rows - r;
                 
-                if (c < this.cols / 2)
+                if (c < this.#cols / 2)
                     points += c;
                 else 
-                    points += this.cols - c;
+                    points += this.#cols - c;
             
                 if (this.board[r][c] === WHITE)
                 {
@@ -502,7 +498,7 @@ class Board {
             }
 
         // adjust the advantage based on who has more turns to go
-        let advantageFactor = (1 / this.turnsRemaining);
+        let advantageFactor = (1 / this.#turnsRemaining);
 
         if (remainingBlack > remainingWhite)
             blackPoints *= (1 + advantageFactor);
@@ -511,17 +507,17 @@ class Board {
         else //same number of moves remaining
         {
             // give a slight first-movers advantage
-            if (this.whiteMoves)
+            if (this.#whiteMoves)
                 whitePoints *= (1 + advantageFactor / 3);
             else
                 blackPoints *= (1 + advantageFactor / 3);
         }
         
         // go through all sequences of length 2 until (but lower than) winSequence
-        for (let i = this.winSequence - 1; i >= 2; i--)
+        for (let i = this.#winSequence - 1; i >= 2; i--)
         {
-            whitePoints += Math.pow(this.findAllSeq(true, i), 3);
-            blackPoints += Math.pow(this.findAllSeq(false, i), 3);
+            whitePoints += Math.pow(this.#findAllSeq(true, i), 3);
+            blackPoints += Math.pow(this.#findAllSeq(false, i), 3);
         }
 
         return whitePoints - blackPoints;
@@ -556,7 +552,7 @@ class Board {
         else //game ongoing and ply >= 1
         {
             let legalMoves = this.getLegalMoves();
-            assessment = (this.whiteMoves) ? (BLACK_WIN - ply) : (WHITE_WIN + ply);
+            assessment = (this.#whiteMoves) ? (BLACK_WIN - ply) : (WHITE_WIN + ply);
 
             for (const move of legalMoves)
             {               
@@ -564,7 +560,7 @@ class Board {
                 tempBoard.move(move);
                 const advisedPlay = tempBoard.play(ply - 1, false);
                                 
-                if (this.whiteMoves)
+                if (this.#whiteMoves)
                 {
                     if (advisedPlay.bestAssessment > assessment)
                     {
@@ -602,152 +598,71 @@ class Board {
     } //play
 }
 
-
-//// ******************* React Front-end ******************************************
-
+// --------------------------------------------------------------------------------------------------------------------------------
 
 
-function Square(props) {
-  return (
-    <button className="square" onClick={props.onClick}>
-      {props.value}
-    </button>
-  );
-}
+// const COLUMNS = 7;
+// const ROWS = 6;
+// const WIN = 4;
 
-class ReactBoard extends React.Component {
-  renderSquare(i) {
-    return (
-      <Square
-        value={this.props.squares[i]}
-        onClick={() => this.props.onClick(i)}
-      />
-    );
-  }
+// var game = new Board(ROWS, COLUMNS, WIN);
 
-  render() {
-    return (
-      <div>
-        <div className="board-row">
-          {this.renderSquare(0)}
-          {this.renderSquare(1)}
-          {this.renderSquare(2)}
-        </div>
-        <div className="board-row">
-          {this.renderSquare(3)}
-          {this.renderSquare(4)}
-          {this.renderSquare(5)}
-        </div>
-        <div className="board-row">
-          {this.renderSquare(6)}
-          {this.renderSquare(7)}
-          {this.renderSquare(8)}
-        </div>
-      </div>
-    );
-  }
-}
+// var readlineSync = require('readline-sync');
 
-class ReactGame extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      history: [
-        {
-          squares: Array(9).fill(null)
-        }
-      ],
-      stepNumber: 0,
-      xIsNext: true
-    };
-  }
+// do 
+// {
+//     console.clear();
+//     console.log(game.display());
 
-  handleClick(i) {
-    const history = this.state.history.slice(0, this.state.stepNumber + 1);
-    const current = history[history.length - 1];
-    const squares = current.squares.slice();
-    if (calculateWinner(squares) || squares[i]) {
-      return;
-    }
-    squares[i] = this.state.xIsNext ? "X" : "O";
-    this.setState({
-      history: history.concat([
-        {
-          squares: squares
-        }
-      ]),
-      stepNumber: history.length,
-      xIsNext: !this.state.xIsNext
-    });
-  }
+//     console.log("Evaluation: " + game.assessment());
 
-  jumpTo(step) {
-    this.setState({
-      stepNumber: step,
-      xIsNext: (step % 2) === 0
-    });
-  }
+//     // Wait for user's response.
+//     let col = readlineSync.question(`${game.isWhiteMove() ? "White" : "Black"}'s move. Column? `);
 
-  render() {
-    const history = this.state.history;
-    const current = history[this.state.stepNumber];
-    const winner = calculateWinner(current.squares);
+//     try
+//     {
+//         if ((col == 't') || (col == 'T'))
+//             game.takeback();
+//         else if ((col == 'q') || (col == 'Q'))
+//             process.exit(1);
+//         else if ((col == 'r') || (col == 'R'))
+//         {
+//             game.reset();
 
-    const moves = history.map((step, move) => {
-      const desc = move ?
-        'Go to move #' + move :
-        'Go to game start';
-      return (
-        <li key={move}>
-          <button onClick={() => this.jumpTo(move)}>{desc}</button>
-        </li>
-      );
-    });
+//         }
+//         else
+//             game.move(col);
 
-    let status;
-    if (winner) {
-      status = "Winner: " + winner;
-    } else {
-      status = "Next player: " + (this.state.xIsNext ? "X" : "O");
-    }
+//             if (game.outcome == ONGOING)
+//             {
+//                 let ply = 5;
+//                 let p1 = Date.now();
+//                 let pcMove = game.play(ply, true).advisedMove;
+//                 let p2 = Date.now() - p1;
+//                 readlineSync.question(`I will respond by moving at column ${pcMove}. Time: ${p2}. Press <enter>`);
+//                 game.move(pcMove);
+//             }       
+            
+//     }
+//     catch (exception)
+//     {
+//         readlineSync.question("This is an invalid move. Press <enter> to retry.");
+//     }
 
-    return (
-      <div className="game">
-        <div className="game-board">
-          <ReactBoard
-            squares={current.squares}
-            onClick={i => this.handleClick(i)}
-          />
-        </div>
-        <div className="game-info">
-          <div>{status}</div>
-          <ol>{moves}</ol>
-        </div>
-      </div>
-    );
-  }
-}
+// } while (game.outcome === ONGOING);
 
-// ========================================
+// console.clear();
+// console.log(game.display());
 
-ReactDOM.render(<ReactGame />, document.getElementById("root"));
+// if (game.outcome === DRAW)
+//     console.log("The game is a draw!")
+// else if (game.outcome === WHITE_WIN)
+//     console.log("White won!")
+// else if (game.outcome === BLACK_WIN)
+//     console.log("Black won!")
+// else
+//     throw "Unknown Outcome";
 
-function calculateWinner(squares) {
-  const lines = [
-    [0, 1, 2],
-    [3, 4, 5],
-    [6, 7, 8],
-    [0, 3, 6],
-    [1, 4, 7],
-    [2, 5, 8],
-    [0, 4, 8],
-    [2, 4, 6]
-  ];
-  for (let i = 0; i < lines.length; i++) {
-    const [a, b, c] = lines[i];
-    if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
-      return squares[a];
-    }
-  }
-  return null;
-}
+// readlineSync.question("Press <enter> to end.");
+
+// console.log(game.gameLog);
