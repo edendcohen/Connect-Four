@@ -556,8 +556,8 @@ class ReactBoard extends React.Component {
   }
 
   render() {
-  //   var rowNum = 6;
-  //   var columnNum = 7;
+  //   var rowNum = ROWS;
+  //   var columnNum = COLUMNS;
 
   //   const rows = new Array(rowNum);
   //   const columns = new Array(columnNum);
