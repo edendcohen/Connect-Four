@@ -2,8 +2,8 @@ import React from "react";
 import ReactDOM from "react-dom";
 import "./index.css";
 
-const COLUMNS = 7;
-const ROWS = 6;
+const COLUMNS = 10;
+const ROWS = 10;
 const WIN = 4;
 
 const MAX_SIZE = 10;
@@ -30,13 +30,13 @@ class Board {
 
   constructor(rows, cols, winSequence) {
     //error handling
-    if (rows <= MIN_SIZE || cols <= MIN_SIZE) throw "BoardTooSmall";
+    if (rows <= MIN_SIZE || cols <= MIN_SIZE) throw new Error("BoardTooSmall");
 
-    if (rows > MAX_SIZE || cols > MAX_SIZE) throw "BoardTooLarge";
+    if (rows > MAX_SIZE || cols > MAX_SIZE) throw new Error("BoardTooLarge");
 
-    if (winSequence > rows || winSequence > cols) throw "WinSequenceTooLong";
+    if (winSequence > rows || winSequence > cols) throw new Error("WinSequenceTooLong");
 
-    if (winSequence <= 1) throw "WinSequenceTooShort";
+    if (winSequence <= 1) throw new Error("WinSequenceTooShort");
 
     this.rows = rows;
     this.cols = cols;
@@ -87,12 +87,8 @@ class Board {
     }
   }
 
-  isWhiteMove() {
-    return this.whiteMoves;
-  }
-
   display() {
-    var output = new String();
+    var output;
 
     for (let r = this.rows - 1; r >= -1; r--) {
       for (let c = 0; c < this.cols; c++) {
@@ -144,7 +140,6 @@ class Board {
         return Math.floor(this.turnsRemaining / 2);
       }
     }
-
     console.assert(true);
   }
 
@@ -300,7 +295,7 @@ class Board {
 
   // Returns an array of all legal moves (by column numbers), or null if none.
   getLegalMoves() {
-    if (this.outcome != ONGOING) return null;
+    if (this.outcome !== ONGOING) return null;
 
     var movesList = new Array();
 
@@ -318,7 +313,7 @@ class Board {
   move(column) {
     if (column < 0 || column >= this.cols) return null;
 
-    if (this.outcome != ONGOING) return null;
+    if (this.outcome !== ONGOING) return null;
 
     for (let r = 0; r < this.rows; r++) {
       if (this.board[r][column] === EMPTY) {
@@ -392,7 +387,7 @@ class Board {
         c <= Math.min(col + 1, this.cols - 1);
         c++
       ) {
-        if (r == row && c == col) continue;
+        if (r === row && c === col) continue;
 
         switch (this.board[r][c]) {
           case WHITE:
@@ -419,7 +414,7 @@ class Board {
    */
   assessment() {
     // return a quick result if it's game over
-    if (this.outcome != ONGOING) return this.outcome;
+    if (this.outcome !== ONGOING) return this.outcome;
 
     var remainingWhite = this.getTurnsRemaining(true);
     var remainingBlack = this.getTurnsRemaining(false);
@@ -428,7 +423,7 @@ class Board {
 
     for (let r = 0; r < this.rows; r++)
       for (let c = 0; c < this.cols; c++) {
-        let { whites, blacks, empties } = this.getNeighbors(r, c);
+        let { whites, blacks, } = this.getNeighbors(r, c);
         let points = 0;
 
         if (r < this.rows / 2) points += r;
@@ -472,22 +467,43 @@ class Board {
    *
    * @param {*} ply 0 will return an assessment of the current sitaution without looking ahead
    * @param {*} first pass true if calling to this function externally (as opposed to recursive calls) - for diagnostics only
+   * @param {x} computerLevel a value from 0 to 1 denoting the quality of play/randomness (0 = lowest, 1 = highest)
    */
-  play(ply, first) {
+  play(ply, first, computerLevel) {
     var bestMove = null;
     var assessment;
 
+    if (first && (this.outcome === ONGOING)) // on first call, test whether to intentionally reduce play quality
+    { 
+      if (computerLevel < Math.sqrt(Math.random())) //intentionally degrading move quality at computerLevel% chance
+      {
+        let rand = Math.sqrt(Math.random());
+        // at lower computerlevels, incline to reduce quality by reducing ply
+        if (computerLevel >= rand)
+        {
+           ply = Math.ceil(ply * rand);
+        }
+        else //otherwise, reduce level through random moves (to introduce some variety)
+        {
+          let legalMoves = this.getLegalMoves();
+          bestMove = legalMoves[Math.floor(Math.random() * legalMoves.length)];
+          return { advisedMove: legalMoves[Math.floor(Math.random() * legalMoves.length)], bestAssessment: 0 };
+        }
+      }
+    } 
+    
+    // Play strongest from this point:
     if (this.totalMoves === 0) {
       // always start in the middle
       bestMove = this.cols >> 1;
       assessment = 0;
-    } else if (ply == 0) {
+    } else if (ply === 0) {
       assessment = this.assessment();
-    } else if (this.outcome != ONGOING) {
+    } else if (this.outcome !== ONGOING) {
       assessment = this.outcome;
 
-      if (assessment == WHITE_WIN) assessment += ply;
-      else if (assessment == BLACK_WIN) assessment -= ply;
+      if (assessment === WHITE_WIN) assessment += ply;
+      else if (assessment === BLACK_WIN) assessment -= ply;
     } //game ongoing and ply >= 1
     else {
       let legalMoves = this.getLegalMoves();
@@ -496,7 +512,7 @@ class Board {
       for (const move of legalMoves) {
         let tempBoard = this.clone();
         tempBoard.move(move);
-        const advisedPlay = tempBoard.play(ply - 1, false);
+        const advisedPlay = tempBoard.play(ply - 1, false, null);
 
         if (this.whiteMoves) {
           if (advisedPlay.bestAssessment > assessment) {
@@ -556,84 +572,84 @@ class ReactBoard extends React.Component {
   }
 
   render() {
-  //   var rowNum = ROWS;
-  //   var columnNum = COLUMNS;
+    var rowNum = ROWS;
+    var columnNum = COLUMNS;
 
-  //   const rows = new Array(rowNum);
-  //   const columns = new Array(columnNum);
-
-  //   return (
-  //     <div>
-  //       {rows.map((el, rowIndex) => {
-  //         return (
-  //           <div className="board-row">
-  //             {columns.map((el, colIndex) =>
-  //               this.renderSquare(rowIndex, colIndex)
-  //             )}
-  //           </div>
-  //         );
-  //       })}
-  //     </div>
-  //   );
+    const rows = new Array(rowNum).fill();
+    const columns = new Array(columnNum).fill();
 
     return (
       <div>
-        <div className="board-row">
-          {this.renderSquare(5,0)}
-          {this.renderSquare(5,1)}
-          {this.renderSquare(5,2)}
-          {this.renderSquare(5,3)}
-          {this.renderSquare(5,4)}
-          {this.renderSquare(5,5)}
-          {this.renderSquare(5,6)}
-        </div>
-        <div className="board-row">
-          {this.renderSquare(4,0)}
-          {this.renderSquare(4,1)}
-          {this.renderSquare(4,2)}
-          {this.renderSquare(4,3)}
-          {this.renderSquare(4,4)}
-          {this.renderSquare(4,5)}
-          {this.renderSquare(4,6)}
-        </div>
-        <div className="board-row">
-          {this.renderSquare(3,0)}
-          {this.renderSquare(3,1)}
-          {this.renderSquare(3,2)}
-          {this.renderSquare(3,3)}
-          {this.renderSquare(3,4)}
-          {this.renderSquare(3,5)}
-          {this.renderSquare(3,6)}
-        </div>
-        <div className="board-row">
-          {this.renderSquare(2,0)}
-          {this.renderSquare(2,1)}
-          {this.renderSquare(2,2)}
-          {this.renderSquare(2,3)}
-          {this.renderSquare(2,4)}
-          {this.renderSquare(2,5)}
-          {this.renderSquare(2,6)}
-        </div>
-        <div className="board-row">
-          {this.renderSquare(1,0)}
-          {this.renderSquare(1,1)}
-          {this.renderSquare(1,2)}
-          {this.renderSquare(1,3)}
-          {this.renderSquare(1,4)}
-          {this.renderSquare(1,5)}
-          {this.renderSquare(1,6)}
-        </div>
-        <div className="board-row">
-          {this.renderSquare(0,0)}
-          {this.renderSquare(0,1)}
-          {this.renderSquare(0,2)}
-          {this.renderSquare(0,3)}
-          {this.renderSquare(0,4)}
-          {this.renderSquare(0,5)}
-          {this.renderSquare(0,6)}
-        </div>
+        {rows.map((el, rowIndex) => {
+          return (
+            <div className="board-row">
+              {columns.map((el, colIndex) =>
+                this.renderSquare(rowNum - rowIndex - 1, colIndex)
+              )}
+            </div>
+          );
+        })}
       </div>
     );
+
+    // return (
+    //   <div>
+    //     <div className="board-row">
+    //       {this.renderSquare(5,0)}
+    //       {this.renderSquare(5,1)}
+    //       {this.renderSquare(5,2)}
+    //       {this.renderSquare(5,3)}
+    //       {this.renderSquare(5,4)}
+    //       {this.renderSquare(5,5)}
+    //       {this.renderSquare(5,6)}
+    //     </div>
+    //     <div className="board-row">
+    //       {this.renderSquare(4,0)}
+    //       {this.renderSquare(4,1)}
+    //       {this.renderSquare(4,2)}
+    //       {this.renderSquare(4,3)}
+    //       {this.renderSquare(4,4)}
+    //       {this.renderSquare(4,5)}
+    //       {this.renderSquare(4,6)}
+    //     </div>
+    //     <div className="board-row">
+    //       {this.renderSquare(3,0)}
+    //       {this.renderSquare(3,1)}
+    //       {this.renderSquare(3,2)}
+    //       {this.renderSquare(3,3)}
+    //       {this.renderSquare(3,4)}
+    //       {this.renderSquare(3,5)}
+    //       {this.renderSquare(3,6)}
+    //     </div>
+    //     <div className="board-row">
+    //       {this.renderSquare(2,0)}
+    //       {this.renderSquare(2,1)}
+    //       {this.renderSquare(2,2)}
+    //       {this.renderSquare(2,3)}
+    //       {this.renderSquare(2,4)}
+    //       {this.renderSquare(2,5)}
+    //       {this.renderSquare(2,6)}
+    //     </div>
+    //     <div className="board-row">
+    //       {this.renderSquare(1,0)}
+    //       {this.renderSquare(1,1)}
+    //       {this.renderSquare(1,2)}
+    //       {this.renderSquare(1,3)}
+    //       {this.renderSquare(1,4)}
+    //       {this.renderSquare(1,5)}
+    //       {this.renderSquare(1,6)}
+    //     </div>
+    //     <div className="board-row">
+    //       {this.renderSquare(0,0)}
+    //       {this.renderSquare(0,1)}
+    //       {this.renderSquare(0,2)}
+    //       {this.renderSquare(0,3)}
+    //       {this.renderSquare(0,4)}
+    //       {this.renderSquare(0,5)}
+    //       {this.renderSquare(0,6)}
+    //     </div>
+    //   </div>
+    // );
   }
 }
 
@@ -654,7 +670,7 @@ class ReactGame extends React.Component {
     var firstMove = null;
 
     if (this.computerWhite) {
-      firstMove = this.game.play(COMPUTER_PLY, true).advisedMove;
+      firstMove = this.game.play(COMPUTER_PLY, true, computerLevel).advisedMove;
       this.game.move(firstMove);
     }
 
@@ -687,7 +703,7 @@ class ReactGame extends React.Component {
     board[row][c] = this.computerWhite ? BLACK_TOKEN : WHITE_TOKEN;
 
     // Computer plays
-    let computerMove = this.game.play(COMPUTER_PLY, true).advisedMove;
+    let computerMove = this.game.play(COMPUTER_PLY, true, computerLevel).advisedMove;
     if (computerMove != null) {
       row = this.game.move(computerMove);
       board[row][computerMove] = this.computerWhite ? WHITE_TOKEN : BLACK_TOKEN;
@@ -788,6 +804,19 @@ class ReactGame extends React.Component {
   }
 }
 
+
+
 // ========================================
 
+;
+var slider = document.getElementById("myRange");
+var computerLevel = slider.value;
+
+slider.oninput = function() {
+  computerLevel = this.value;
+}
+
+
 ReactDOM.render(<ReactGame />, document.getElementById("root"));
+
+
