@@ -551,7 +551,8 @@ const COMPUTER_WHITE = false;
 const COMPUTER_MAX_POSITIONS = 12000;
 const WHITE_TOKEN = "⚪";
 const BLACK_TOKEN = "⚫";
-const LAST_CPU_TOKEN = "📀";
+const BLACK_TOKEN_LAST = "📀";
+const WHITE_TOKEN_LAST = "💿";
 const RESTART_GAME = 1;
 const TAKEBACK = 2;
 const PLAY_COMPUTER = 3;
@@ -777,6 +778,8 @@ class ReactGame extends React.Component {
           />
         </div>
         <div className="game-info">
+          <div>Drop your tokens to form any line of {this.game.winSequence}!</div>
+          <br></br>
           <div>{status}</div>
           <div></div>
           <ol>
