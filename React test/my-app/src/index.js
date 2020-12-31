@@ -6,7 +6,7 @@ const DEFAULT_COLUMNS = 7;
 const DEFAULT_ROWS = 6;
 const DEFAULT_SEQ = 4;
 
-const MAX_SIZE = 10;
+const MAX_SIZE = 20;
 const MIN_SIZE = 3;
 const EMPTY = 0;
 const WHITE = 1;
@@ -548,7 +548,7 @@ class Board {
 //// ******************* React Front-end ******************************************
 
 const COMPUTER_WHITE = false;
-const COMPUTER_PLY = 5;
+const COMPUTER_MAX_POSITIONS = 12000;
 const WHITE_TOKEN = "⚪";
 const BLACK_TOKEN = "⚫";
 const LAST_CPU_TOKEN = "📀";
@@ -556,12 +556,12 @@ const RESTART_GAME = 1;
 const TAKEBACK = 2;
 const PLAY_COMPUTER = 3;
 const RESIZE_BOARD = 4;
-const MIN_ROWS = 5;
-const MAX_ROWS = 10;
-const MIN_COLS = 5;
-const MAX_COLS = 10;
+const MIN_ROWS = 4;
+const MAX_ROWS = 12;
+const MIN_COLS = 4;
+const MAX_COLS = 12;
 const MIN_SEQ = 3;
-const MAX_SEQ = 6;
+const MAX_SEQ = 8;
 
 function Square(props) {
   return (
@@ -601,70 +601,12 @@ class ReactBoard extends React.Component {
         })}
       </div>
     );
-
-    // return (
-    //   <div>
-    //     <div className="board-row">
-    //       {this.renderSquare(5,0)}
-    //       {this.renderSquare(5,1)}
-    //       {this.renderSquare(5,2)}
-    //       {this.renderSquare(5,3)}
-    //       {this.renderSquare(5,4)}
-    //       {this.renderSquare(5,5)}
-    //       {this.renderSquare(5,6)}
-    //     </div>
-    //     <div className="board-row">
-    //       {this.renderSquare(4,0)}
-    //       {this.renderSquare(4,1)}
-    //       {this.renderSquare(4,2)}
-    //       {this.renderSquare(4,3)}
-    //       {this.renderSquare(4,4)}
-    //       {this.renderSquare(4,5)}
-    //       {this.renderSquare(4,6)}
-    //     </div>
-    //     <div className="board-row">
-    //       {this.renderSquare(3,0)}
-    //       {this.renderSquare(3,1)}
-    //       {this.renderSquare(3,2)}
-    //       {this.renderSquare(3,3)}
-    //       {this.renderSquare(3,4)}
-    //       {this.renderSquare(3,5)}
-    //       {this.renderSquare(3,6)}
-    //     </div>
-    //     <div className="board-row">
-    //       {this.renderSquare(2,0)}
-    //       {this.renderSquare(2,1)}
-    //       {this.renderSquare(2,2)}
-    //       {this.renderSquare(2,3)}
-    //       {this.renderSquare(2,4)}
-    //       {this.renderSquare(2,5)}
-    //       {this.renderSquare(2,6)}
-    //     </div>
-    //     <div className="board-row">
-    //       {this.renderSquare(1,0)}
-    //       {this.renderSquare(1,1)}
-    //       {this.renderSquare(1,2)}
-    //       {this.renderSquare(1,3)}
-    //       {this.renderSquare(1,4)}
-    //       {this.renderSquare(1,5)}
-    //       {this.renderSquare(1,6)}
-    //     </div>
-    //     <div className="board-row">
-    //       {this.renderSquare(0,0)}
-    //       {this.renderSquare(0,1)}
-    //       {this.renderSquare(0,2)}
-    //       {this.renderSquare(0,3)}
-    //       {this.renderSquare(0,4)}
-    //       {this.renderSquare(0,5)}
-    //       {this.renderSquare(0,6)}
-    //     </div>
-    //   </div>
-    // );
   }
 }
 
 class ReactGame extends React.Component {
   game;
+  gamePly;
   computerWhite;
 
   constructor(props) {
@@ -677,10 +619,13 @@ class ReactGame extends React.Component {
   resetState() {
     this.game = new Board(gameRows, gameColumns, gameSeq);
 
+    // how many moves to search ahead based on the max number of positions defined (speed trade-off)
+    this.gamePly = Math.floor(2 * Math.log(COMPUTER_MAX_POSITIONS) / Math.log(gameRows * gameColumns));
+
     var firstMove = null;
 
     if (this.computerWhite) {
-      firstMove = this.game.play(COMPUTER_PLY, true, computerLevel).advisedMove;
+      firstMove = this.game.play(this.gamePly, true, computerLevel).advisedMove;
       this.game.move(firstMove);
     }
 
@@ -713,7 +658,7 @@ class ReactGame extends React.Component {
     board[row][c] = this.computerWhite ? BLACK_TOKEN : WHITE_TOKEN;
 
     // Computer plays
-    let computerMove = this.game.play(COMPUTER_PLY, true, computerLevel)
+    let computerMove = this.game.play(this.gamePly, true, computerLevel)
       .advisedMove;
     if (computerMove != null) {
       row = this.game.move(computerMove);
@@ -742,7 +687,7 @@ class ReactGame extends React.Component {
         break;
 
       case PLAY_COMPUTER:
-        let computerMove = this.game.play(COMPUTER_PLY, true).advisedMove;
+        let computerMove = this.game.play(this.gamePly, true).advisedMove;
         if (computerMove != null) {
           //if a move is possible (game not over yet)
           let row = this.game.move(computerMove);
@@ -821,8 +766,7 @@ class ReactGame extends React.Component {
       status += "DRAW!";
     } // ongoing game
     else
-      status =
-        (this.game.whiteMoves ? WHITE_TOKEN : BLACK_TOKEN) + " plays next!";
+      status = "You play " + (this.game.whiteMoves ? WHITE_TOKEN : BLACK_TOKEN);
 
     return (
       <div className="game">
