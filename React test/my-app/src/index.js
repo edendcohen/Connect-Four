@@ -472,7 +472,6 @@ class Board {
 
         var remainingWhite = this.getTurnsRemaining(true);
         var remainingBlack = this.getTurnsRemaining(false);
-        var totalTurns = this.cols * this.rows;
         var whitePoints = 0;
         var blackPoints = 0;
 
@@ -541,7 +540,12 @@ class Board {
         var bestMove = null;
         var assessment;
         
-        if (ply == 0)
+        if (this.totalMoves === 0) // always start in the middle
+        {
+           bestMove = this.cols >> 1;
+           assessment = 0;
+        }
+        else if (ply == 0)
         {
             assessment = this.assessment();
         }
@@ -607,7 +611,11 @@ class Board {
 
 //// ******************* React Front-end ******************************************
 
-
+const COMPUTER_WHITE = false;
+const COMPUTER_PLY = 5;
+const WHITE_TOKEN = "⚪";
+const BLACK_TOKEN = "⚫";
+const LAST_CPU_TOKEN = "📀";
 
 function Square(props) {
   return (
@@ -701,6 +709,12 @@ class ReactGame extends React.Component {
             squares[r][c] = null;
     }
 
+    if (computerWhite)
+    {
+       console.assert(firstMove != null);
+       squares[0][firstMove] = WHITE_TOKEN;
+    }
+
     this.state = {
       history: [
         {
@@ -708,7 +722,7 @@ class ReactGame extends React.Component {
         }
       ],
       stepNumber: 0,
-      xIsNext: true
+      whiteNext: !computerWhite
     };
   }
 
@@ -728,7 +742,25 @@ class ReactGame extends React.Component {
     { 
       return;
     }
-    squares[row][c] = this.state.xIsNext ? "⚪" : "⚫";
+    squares[row][c] = computerWhite ? BLACK_TOKEN : WHITE_TOKEN;
+
+    // this.setState({
+    //   history: history.concat([
+    //     {
+    //       squares: squares
+    //     }
+    //   ]),
+    //   stepNumber: history.length,
+    //   whiteNext: !this.state.whiteNext
+    // });
+
+    // Computer plays
+    let computerMove = game.play(COMPUTER_PLY, true).advisedMove;
+    if (computerMove != null)
+    {
+        row = game.move(computerMove);
+        squares[row][computerMove] = computerWhite ? WHITE_TOKEN : BLACK_TOKEN;
+    }
 
     this.setState({
       history: history.concat([
@@ -737,14 +769,14 @@ class ReactGame extends React.Component {
         }
       ]),
       stepNumber: history.length,
-      xIsNext: !this.state.xIsNext
+      whiteNext: this.state.whiteNext
     });
   }
 
   jumpTo(step) {
     this.setState({
       stepNumber: step,
-      xIsNext: (step % 2) === 0
+      whiteNext: (step % 2) === 0
     });
   }
 
@@ -763,28 +795,32 @@ class ReactGame extends React.Component {
       );
     });
 
-    let status;
+    let status = "Game over: ";
     
-    switch (game.outcome)
+    // If game is over with a win:
+    if (game.outcome === WHITE_WIN || (game.outcome === BLACK_WIN))
     {
-      case WHITE_WIN:
-        status = "⚪ wins!";
-        break;
-  
-      case BLACK_WIN:
-        status = "⚫ wins!";
-        break;
-          
-      case DRAW:
-        status = "Draw!";
-        break;
-
-      default:
-        status = "Next player: " + (this.state.xIsNext ? "⚪" : "⚫");
-        break;
-
-    } 
-
+      let winningToken = (game.outcome === WHITE_WIN) ? WHITE_TOKEN : BLACK_TOKEN;
+      if (computerWhite != null) // if computer played
+      {
+        if (computerWhite === game.whiteMoves)
+        {
+          status += `you ${winningToken} win!`;
+        }
+        else
+        {
+          status += `computer ${winningToken} wins!`;
+        }
+      }
+      else
+        status += `${winningToken} player wins!`;
+    }
+    else if (game.outcome === DRAW)
+    {
+      status += "DRAW!";
+    }
+    else // ongoing game
+        status = (this.state.whiteNext ? WHITE_TOKEN : BLACK_TOKEN) + " plays next!"
 
     return (
       <div className="game">
@@ -805,7 +841,14 @@ class ReactGame extends React.Component {
 
 // ========================================
 
-
+var computerWhite = COMPUTER_WHITE;
+var firstMove = null;
 var game = new Board(ROWS, COLUMNS, WIN);
+
+if (computerWhite)
+{
+    firstMove = game.play(COMPUTER_PLY, true).advisedMove;
+    game.move(firstMove);
+}
 
 ReactDOM.render(<ReactGame />, document.getElementById("root"));

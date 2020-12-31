@@ -4,7 +4,7 @@ body {
 }
 
 ol, ul {
-  padding-left: 30px;
+  padding-left: 20px;
 }
 
 .board-row:after {
@@ -19,7 +19,7 @@ ol, ul {
 
 .square {
   background: rgb(230, 252, 255);
-  border: 2px solid rgb(6, 109, 228);
+  border: 1px solid rgb(6, 109, 228);
   float: left;
   font-size: 26px;
   font-weight: bold;
@@ -46,5 +46,5 @@ ol, ul {
 }
 
 .game-info {
-  margin-left: 20px;
+  margin-left: 16px;
 }

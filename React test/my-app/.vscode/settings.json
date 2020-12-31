@@ -1,0 +1,5 @@
+{
+    "appService.showBuildDuringDeployPrompt": false,
+    "appService.defaultWebAppToDeploy": "/subscriptions/479c1277-7af6-440d-886d-8e67b5266ee6/resourceGroups/appsvc_linux_centralus/providers/Microsoft.Web/sites/EdenCohenConnectGame",
+    "appService.deploySubpath": "."
+}
