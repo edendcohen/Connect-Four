@@ -616,6 +616,9 @@ const COMPUTER_PLY = 5;
 const WHITE_TOKEN = "⚪";
 const BLACK_TOKEN = "⚫";
 const LAST_CPU_TOKEN = "📀";
+const RESTART_GAME = 1;
+const TAKEBACK = 2;
+const PLAY_COMPUTER = 3;
 
 function Square(props) {
   return (
@@ -697,10 +700,34 @@ class ReactBoard extends React.Component {
   }
 }
 
+
+
+
 class ReactGame extends React.Component {
+  
+  game;
+  computerWhite;
+
+  
   constructor(props) {
     super(props);
+    this.computerWhite = COMPUTER_WHITE;
+    this.resetState();
+  }
+
+
+  resetState()
+  {
+    this.game = new Board(ROWS, COLUMNS, WIN);
     
+    var firstMove = null;
+
+    if (this.computerWhite)
+    {
+        firstMove = this.game.play(COMPUTER_PLY, true).advisedMove;
+        this.game.move(firstMove);
+    }
+
     var squares = new Array(ROWS);       
     for (let r = 0; r < ROWS; r++) 
     {
@@ -709,7 +736,7 @@ class ReactGame extends React.Component {
             squares[r][c] = null;
     }
 
-    if (computerWhite)
+    if (this.computerWhite)
     {
        console.assert(firstMove != null);
        squares[0][firstMove] = WHITE_TOKEN;
@@ -722,8 +749,10 @@ class ReactGame extends React.Component {
         }
       ],
       stepNumber: 0,
-      whiteNext: !computerWhite
+      whiteNext: !this.computerWhite
     };
+
+
   }
 
   handleClick(r,c) {
@@ -732,34 +761,24 @@ class ReactGame extends React.Component {
     const squares = current.squares.slice();
 
     //Integrate 
-    if (game.outcome !== ONGOING)
+    if (this.game.outcome !== ONGOING)
     {
       return;
     }
 
-    let row = game.move(c);
+    let row = this.game.move(c);
     if (row == null) //invalid move
     { 
       return;
     }
-    squares[row][c] = computerWhite ? BLACK_TOKEN : WHITE_TOKEN;
-
-    // this.setState({
-    //   history: history.concat([
-    //     {
-    //       squares: squares
-    //     }
-    //   ]),
-    //   stepNumber: history.length,
-    //   whiteNext: !this.state.whiteNext
-    // });
+    squares[row][c] = this.computerWhite ? BLACK_TOKEN : WHITE_TOKEN;
 
     // Computer plays
-    let computerMove = game.play(COMPUTER_PLY, true).advisedMove;
+    let computerMove = this.game.play(COMPUTER_PLY, true).advisedMove;
     if (computerMove != null)
     {
-        row = game.move(computerMove);
-        squares[row][computerMove] = computerWhite ? WHITE_TOKEN : BLACK_TOKEN;
+        row = this.game.move(computerMove);
+        squares[row][computerMove] = this.computerWhite ? WHITE_TOKEN : BLACK_TOKEN;
     }
 
     this.setState({
@@ -773,37 +792,40 @@ class ReactGame extends React.Component {
     });
   }
 
-  jumpTo(step) {
-    this.setState({
-      stepNumber: step,
-      whiteNext: (step % 2) === 0
-    });
+  jumpTo(actionType) 
+  {
+    switch (actionType)
+    {
+      case RESTART_GAME:
+        this.resetState();
+        //this.render();
+
+        break;
+
+      case TAKEBACK:
+        break;
+
+      case PLAY_COMPUTER:
+        break;
+
+      default:
+        console.assert(false);
+    }
   }
 
   render() {
     const history = this.state.history;
     const current = history[this.state.stepNumber];
 
-    const moves = history.map((step, move) => {
-      const desc = move ?
-        'Go to move #' + move :
-        'Go to game start';
-      return (
-        <li key={move}>
-          <button onClick={() => this.jumpTo(move)}>{desc}</button>
-        </li>
-      );
-    });
-
     let status = "Game over: ";
     
     // If game is over with a win:
-    if (game.outcome === WHITE_WIN || (game.outcome === BLACK_WIN))
+    if (this.game.outcome === WHITE_WIN || (this.game.outcome === BLACK_WIN))
     {
-      let winningToken = (game.outcome === WHITE_WIN) ? WHITE_TOKEN : BLACK_TOKEN;
-      if (computerWhite != null) // if computer played
+      let winningToken = (this.game.outcome === WHITE_WIN) ? WHITE_TOKEN : BLACK_TOKEN;
+      if (this.computerWhite != null) // if computer played
       {
-        if (computerWhite === game.whiteMoves)
+        if (this.computerWhite === this.game.whiteMoves)
         {
           status += `you ${winningToken} win!`;
         }
@@ -815,7 +837,7 @@ class ReactGame extends React.Component {
       else
         status += `${winningToken} player wins!`;
     }
-    else if (game.outcome === DRAW)
+    else if (this.game.outcome === DRAW)
     {
       status += "DRAW!";
     }
@@ -832,7 +854,12 @@ class ReactGame extends React.Component {
         </div>
         <div className="game-info">
           <div>{status}</div>
-          <ol>{moves}</ol>
+          <div></div>
+          <ol>
+              <li><button onClick={() => this.jumpTo(1)}>{"Restart game"}</button></li><br></br>
+              <li><button onClick={() => this.jumpTo(2)}>{"Take back"}</button></li><br></br>
+              <li><button onClick={() => this.jumpTo(3)}>{"Play computer"}</button></li><br></br>
+          </ol>
         </div>
       </div>
     );
@@ -840,15 +867,5 @@ class ReactGame extends React.Component {
 }
 
 // ========================================
-
-var computerWhite = COMPUTER_WHITE;
-var firstMove = null;
-var game = new Board(ROWS, COLUMNS, WIN);
-
-if (computerWhite)
-{
-    firstMove = game.play(COMPUTER_PLY, true).advisedMove;
-    game.move(firstMove);
-}
 
 ReactDOM.render(<ReactGame />, document.getElementById("root"));
