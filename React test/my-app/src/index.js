@@ -2,9 +2,9 @@ import React from "react";
 import ReactDOM from "react-dom";
 import "./index.css";
 
-const COLUMNS = 10;
-const ROWS = 10;
-const WIN = 4;
+const DEFAULT_COLUMNS = 7;
+const DEFAULT_ROWS = 6;
+const DEFAULT_SEQ = 4;
 
 const MAX_SIZE = 10;
 const MIN_SIZE = 3;
@@ -34,7 +34,8 @@ class Board {
 
     if (rows > MAX_SIZE || cols > MAX_SIZE) throw new Error("BoardTooLarge");
 
-    if (winSequence > rows || winSequence > cols) throw new Error("WinSequenceTooLong");
+    if (winSequence > rows || winSequence > cols)
+      throw new Error("WinSequenceTooLong");
 
     if (winSequence <= 1) throw new Error("WinSequenceTooShort");
 
@@ -423,7 +424,7 @@ class Board {
 
     for (let r = 0; r < this.rows; r++)
       for (let c = 0; c < this.cols; c++) {
-        let { whites, blacks, } = this.getNeighbors(r, c);
+        let { whites, blacks } = this.getNeighbors(r, c);
         let points = 0;
 
         if (r < this.rows / 2) points += r;
@@ -473,25 +474,27 @@ class Board {
     var bestMove = null;
     var assessment;
 
-    if (first && (this.outcome === ONGOING)) // on first call, test whether to intentionally reduce play quality
-    { 
-      if (computerLevel < Math.sqrt(Math.random())) //intentionally degrading move quality at computerLevel% chance
-      {
+    if (first && this.outcome === ONGOING) {
+      // on first call, test whether to intentionally reduce play quality
+      if (computerLevel < Math.sqrt(Math.random())) {
+        //intentionally degrading move quality at computerLevel% chance
         let rand = Math.sqrt(Math.random());
         // at lower computerlevels, incline to reduce quality by reducing ply
-        if (computerLevel >= rand)
-        {
-           ply = Math.ceil(ply * rand);
-        }
-        else //otherwise, reduce level through random moves (to introduce some variety)
-        {
+        if (computerLevel >= rand) {
+          ply = Math.ceil(ply * rand);
+        } //otherwise, reduce level through random moves (to introduce some variety)
+        else {
           let legalMoves = this.getLegalMoves();
           bestMove = legalMoves[Math.floor(Math.random() * legalMoves.length)];
-          return { advisedMove: legalMoves[Math.floor(Math.random() * legalMoves.length)], bestAssessment: 0 };
+          return {
+            advisedMove:
+              legalMoves[Math.floor(Math.random() * legalMoves.length)],
+            bestAssessment: 0,
+          };
         }
       }
-    } 
-    
+    }
+
     // Play strongest from this point:
     if (this.totalMoves === 0) {
       // always start in the middle
@@ -552,6 +555,13 @@ const LAST_CPU_TOKEN = "📀";
 const RESTART_GAME = 1;
 const TAKEBACK = 2;
 const PLAY_COMPUTER = 3;
+const RESIZE_BOARD = 4;
+const MIN_ROWS = 5;
+const MAX_ROWS = 10;
+const MIN_COLS = 5;
+const MAX_COLS = 10;
+const MIN_SEQ = 3;
+const MAX_SEQ = 6;
 
 function Square(props) {
   return (
@@ -572,8 +582,8 @@ class ReactBoard extends React.Component {
   }
 
   render() {
-    var rowNum = ROWS;
-    var columnNum = COLUMNS;
+    var rowNum = gameRows;
+    var columnNum = gameColumns;
 
     const rows = new Array(rowNum).fill();
     const columns = new Array(columnNum).fill();
@@ -665,7 +675,7 @@ class ReactGame extends React.Component {
   }
 
   resetState() {
-    this.game = new Board(ROWS, COLUMNS, WIN);
+    this.game = new Board(gameRows, gameColumns, gameSeq);
 
     var firstMove = null;
 
@@ -674,9 +684,9 @@ class ReactGame extends React.Component {
       this.game.move(firstMove);
     }
 
-    var board = new Array(ROWS);
-    for (let r = 0; r < ROWS; r++) {
-      board[r] = new Array(COLUMNS);
+    var board = new Array(gameRows);
+    for (let r = 0; r < gameRows; r++) {
+      board[r] = new Array(gameColumns);
       for (let c = 0; c < board[r].length; c++) board[r][c] = null;
     }
 
@@ -703,7 +713,8 @@ class ReactGame extends React.Component {
     board[row][c] = this.computerWhite ? BLACK_TOKEN : WHITE_TOKEN;
 
     // Computer plays
-    let computerMove = this.game.play(COMPUTER_PLY, true, computerLevel).advisedMove;
+    let computerMove = this.game.play(COMPUTER_PLY, true, computerLevel)
+      .advisedMove;
     if (computerMove != null) {
       row = this.game.move(computerMove);
       board[row][computerMove] = this.computerWhite ? WHITE_TOKEN : BLACK_TOKEN;
@@ -740,6 +751,46 @@ class ReactGame extends React.Component {
             ? WHITE_TOKEN
             : BLACK_TOKEN;
         }
+        break;
+
+      case RESIZE_BOARD:
+        let error = true;
+        var newSize = prompt(
+          `Enter a new board size and winning sequence (rows x columns x seq) from ${MIN_ROWS}x${MIN_COLS}x${MIN_SEQ} to ${MAX_ROWS}x${MAX_COLS}x${MAX_SEQ}:`,
+          "6x7x4"
+        );
+        if (newSize !== null) {
+          newSize.trim();
+          let splitSize = newSize.split("x");
+          if (splitSize.length === 3) {
+            let newRows = parseInt(splitSize[0]);
+            let newCols = parseInt(splitSize[1]);
+            let newSeq = parseInt(splitSize[2]);
+
+            if (
+              !Number.isNaN(newRows) &&
+              !Number.isNaN(newCols) &&
+              !Number.isNaN(newSeq) &&
+              newRows >= MIN_ROWS &&
+              newRows <= MAX_ROWS &&
+              newCols >= MIN_COLS &&
+              newCols <= MAX_COLS &&
+              newSeq >= MIN_SEQ &&
+              newSeq <= MAX_SEQ &&
+              newSeq <= newRows &&
+              newSeq <= newCols
+            ) {
+              gameRows = newRows;
+              gameColumns = newCols;
+              gameSeq = newSeq;
+              error = false;
+              this.resetState();
+            }
+          }
+        }
+
+        if (error)
+          alert("Sorry, there was a problem with your input. No changes made.");
         break;
 
       default:
@@ -786,15 +837,27 @@ class ReactGame extends React.Component {
           <div></div>
           <ol>
             <li>
-              <button onClick={() => this.jumpTo(1)}>{"Restart game"}</button>
+              <button onClick={() => this.jumpTo(RESTART_GAME)}>
+                {"Restart game"}
+              </button>
             </li>
             <br></br>
             <li>
-              <button onClick={() => this.jumpTo(2)}>{"Take back"}</button>
+              <button onClick={() => this.jumpTo(TAKEBACK)}>
+                {"Take back"}
+              </button>
             </li>
             <br></br>
             <li>
-              <button onClick={() => this.jumpTo(3)}>{"Play computer"}</button>
+              <button onClick={() => this.jumpTo(PLAY_COMPUTER)}>
+                {"Play computer"}
+              </button>
+            </li>
+            <br></br>
+            <li>
+              <button onClick={() => this.jumpTo(RESIZE_BOARD)}>
+                {"Resize board"}
+              </button>
             </li>
             <br></br>
           </ol>
@@ -804,19 +867,16 @@ class ReactGame extends React.Component {
   }
 }
 
-
-
 // ========================================
 
-;
 var slider = document.getElementById("myRange");
 var computerLevel = slider.value;
+var gameColumns = DEFAULT_COLUMNS;
+var gameRows = DEFAULT_ROWS;
+var gameSeq = DEFAULT_SEQ;
 
-slider.oninput = function() {
+slider.oninput = function () {
   computerLevel = this.value;
-}
-
+};
 
 ReactDOM.render(<ReactGame />, document.getElementById("root"));
-
-
