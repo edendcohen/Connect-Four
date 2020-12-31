@@ -377,7 +377,11 @@ class Board {
             {
                 this.board[r][column] = (this.whiteMoves) ? WHITE : BLACK;
                 
-                this.gameLog.push({side:this.whiteMoves?"White":"Black", column:parseInt(column,10)}); //add move to game log
+                this.gameLog.push({
+                  side:this.whiteMoves?"White":"Black", 
+                  row:r,
+                  col:parseInt(column,10)
+                }); //add move to game log
 
                 this.whiteMoves = !this.whiteMoves;
                 this.totalMoves++;
@@ -590,11 +594,6 @@ class Board {
                     // if (assessment <= BLACK_WIN) //save time as optimal move already found
                     //     break;
                 }
-
-                
-
-                // let ret = this.takeback();
-                // console.assert(ret);
             }
 
             // no best move found - pick one at random
@@ -707,14 +706,13 @@ class ReactGame extends React.Component {
   
   game;
   computerWhite;
-
   
   constructor(props) {
     super(props);
+    this.state = { squares: null };
     this.computerWhite = COMPUTER_WHITE;
     this.resetState();
   }
-
 
   resetState()
   {
@@ -728,39 +726,28 @@ class ReactGame extends React.Component {
         this.game.move(firstMove);
     }
 
-    var squares = new Array(ROWS);       
+    var board = new Array(ROWS);       
     for (let r = 0; r < ROWS; r++) 
     {
-        squares[r] = new Array(COLUMNS);
-        for (let c = 0; c < squares[r].length; c++)
-            squares[r][c] = null;
+        board[r] = new Array(COLUMNS);
+        for (let c = 0; c < board[r].length; c++)
+            board[r][c] = null;
     }
 
     if (this.computerWhite)
     {
        console.assert(firstMove != null);
-       squares[0][firstMove] = WHITE_TOKEN;
+       board[0][firstMove] = WHITE_TOKEN;
     }
 
-    this.state = {
-      history: [
-        {
-          squares
-        }
-      ],
-      stepNumber: 0,
-      whiteNext: !this.computerWhite
-    };
-
+    this.state.squares = board ;
 
   }
 
   handleClick(r,c) {
-    const history = this.state.history.slice(0, this.state.stepNumber + 1);
-    const current = history[history.length - 1];
-    const squares = current.squares.slice();
 
-    //Integrate 
+    var board = this.state.squares; 
+
     if (this.game.outcome !== ONGOING)
     {
       return;
@@ -771,24 +758,18 @@ class ReactGame extends React.Component {
     { 
       return;
     }
-    squares[row][c] = this.computerWhite ? BLACK_TOKEN : WHITE_TOKEN;
+    board[row][c] = this.computerWhite ? BLACK_TOKEN : WHITE_TOKEN;
 
     // Computer plays
     let computerMove = this.game.play(COMPUTER_PLY, true).advisedMove;
     if (computerMove != null)
     {
         row = this.game.move(computerMove);
-        squares[row][computerMove] = this.computerWhite ? WHITE_TOKEN : BLACK_TOKEN;
+        board[row][computerMove] = this.computerWhite ? WHITE_TOKEN : BLACK_TOKEN;
     }
 
     this.setState({
-      history: history.concat([
-        {
-          squares: squares
-        }
-      ]),
-      stepNumber: history.length,
-      whiteNext: this.state.whiteNext
+      squares: board
     });
   }
 
@@ -798,11 +779,17 @@ class ReactGame extends React.Component {
     {
       case RESTART_GAME:
         this.resetState();
-        //this.render();
-
         break;
 
       case TAKEBACK:
+        if (this.game.totalMoves > 0)  
+        {
+            const lastMove = this.game.gameLog[this.game.gameLog.length - 1];
+            const lastRow = lastMove.row;
+            const lastCol = lastMove.col;  
+            this.game.takeback();
+            this.state.squares[lastRow][lastCol] = null;
+        }
         break;
 
       case PLAY_COMPUTER:
@@ -811,11 +798,13 @@ class ReactGame extends React.Component {
       default:
         console.assert(false);
     }
+
+    this.setState({
+      squares: this.state.squares
+    });
   }
 
   render() {
-    const history = this.state.history;
-    const current = history[this.state.stepNumber];
 
     let status = "Game over: ";
     
@@ -842,13 +831,13 @@ class ReactGame extends React.Component {
       status += "DRAW!";
     }
     else // ongoing game
-        status = (this.state.whiteNext ? WHITE_TOKEN : BLACK_TOKEN) + " plays next!"
+        status = (this.game.whiteMoves ? WHITE_TOKEN : BLACK_TOKEN) + " plays next!"
 
     return (
       <div className="game">
         <div className="game-board">
           <ReactBoard
-            squares={current.squares}
+            squares={this.state.squares}
             onClick={(r,c) => this.handleClick(r,c)}
           />
         </div>
