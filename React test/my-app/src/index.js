@@ -22,11 +22,10 @@ class Board {
 	winSequence;
 	whiteMoves;
 	totalMoves;
-	board;
+  board;
 	turnsRemaining;
 	outcome;
-	gameLog;
-	debugBoard;
+  gameLog;
 
 	constructor(rows, cols, winSequence) {
 		//error handling
@@ -56,7 +55,7 @@ class Board {
 		newGame.totalMoves = this.totalMoves;
 		newGame.turnsRemaining = this.turnsRemaining;
 		newGame.gameLog = this.gameLog.slice();
-		newGame.outcome = this.outcome;
+    newGame.outcome = this.outcome;
 
 		//clone the board itself
 		newGame.board = new Array(this.rows);
@@ -76,13 +75,13 @@ class Board {
 		this.whiteMoves = true;
 		this.turnsRemaining = this.cols * this.rows;
 		this.outcome = ONGOING;
-		this.gameLog = new Array();
-
+    this.gameLog = new Array();
+    
 		this.board = new Array(this.rows);
-
 		for (let r = 0; r < this.rows; r++) {
 			this.board[r] = new Array(this.cols);
-			for (let c = 0; c < this.cols; c++) this.board[r][c] = EMPTY;
+      for (let c = 0; c < this.cols; c++) 
+        this.board[r][c] = EMPTY;
 		}
 	}
 
@@ -122,23 +121,10 @@ class Board {
 	 * @param {boolean} sideWhite Which side's remaining turns should be returned.
 	 */
 	getTurnsRemaining(sideWhite) {
-		if (sideWhite) {
-			//requested for white
-			if (this.whiteMoves) {
-				return Math.ceil(this.turnsRemaining / 2);
-			} //black moves
-			else {
-				return Math.floor(this.turnsRemaining / 2);
-			}
-		} // requetsed for black
-		else {
-			if (!this.whiteMoves) {
-				return Math.ceil(this.turnsRemaining / 2);
-			} //white moves
-			else {
-				return Math.floor(this.turnsRemaining / 2);
-			}
-		}
+    if ((sideWhite && this.whiteMoves) || (!sideWhite && !this.whiteMoves))
+      return Math.ceil(this.turnsRemaining / 2);
+    else  //requested for black
+      return Math.floor(this.turnsRemaining / 2);
 	}
 
 	/**
@@ -177,7 +163,7 @@ class Board {
 				if (sum === seqLength * (sideWhite ? WHITE : BLACK))
 					if (this.getTurnsRemaining(sideWhite) >= emptyCells)
 						// only count this if the requested side has enough moves remaining to theoretically occupy this sequence
-						count++;
+            count++;
 			}
 			row++;
 		}
@@ -207,7 +193,7 @@ class Board {
 				if (sum === seqLength * (sideWhite ? WHITE : BLACK))
 					if (this.getTurnsRemaining(sideWhite) >= emptyCells)
 						// only count this if the requested side has enough moves remaining to theoretically occupy this sequence
-						count++;
+            count++;
 			}
 
 			col++;
@@ -237,7 +223,7 @@ class Board {
 				if (sum === seqLength * (sideWhite ? WHITE : BLACK))
 					if (this.getTurnsRemaining(sideWhite) >= emptyCells)
 						// only count this if the requested side has enough moves remaining to theoretically occupy this sequence
-						count++;
+            count++;
 			}
 		}
 
@@ -257,13 +243,14 @@ class Board {
 				if (sum === seqLength * (sideWhite ? WHITE : BLACK))
 					if (this.getTurnsRemaining(sideWhite) >= emptyCells)
 						// only count this if the requested side has enough moves remaining to theoretically occupy this sequence
-						count++;
+            count++;
 			}
 		}
 		return count;
 	}
 
 	findAllSeq(sideWhite, seqLength) {
+
 		return (
 			this.findSeqInRow(sideWhite, seqLength) +
 			this.findSeqInCol(sideWhite, seqLength) +
@@ -303,19 +290,19 @@ class Board {
 
 	// If moves succeeds - returns row
 	// If move cannot be done, returns null.
-	move(column) {
-		if (column < 0 || column >= this.cols) return null;
+	move(c) {
+		if (c < 0 || c >= this.cols) return null;
 
 		if (this.outcome !== ONGOING) return null;
 
 		for (let r = 0; r < this.rows; r++) {
-			if (this.board[r][column] === EMPTY) {
-				this.board[r][column] = this.whiteMoves ? WHITE : BLACK;
-
-				this.gameLog.push({
+			if (this.board[r][c] === EMPTY) {
+				this.board[r][c] = this.whiteMoves ? WHITE : BLACK;
+        
+ 				this.gameLog.push({
 					side: this.whiteMoves ? "White" : "Black",
 					row: r,
-					col: parseInt(column, 10),
+          col: parseInt(c, 10),
 				}); //add move to game log
 
 				this.whiteMoves = !this.whiteMoves;
@@ -323,8 +310,6 @@ class Board {
 				this.turnsRemaining--;
 
 				this.outcome = this.getOutcome();
-
-				this.debugBoard = this.display();
 
 				return r;
 			}
@@ -349,42 +334,12 @@ class Board {
 			this.whiteMoves = !this.whiteMoves; //change side
 			this.totalMoves--;
 			this.turnsRemaining++;
-			this.outcome = ONGOING; //if the game was over before the last move, it would not be possible to get here
-			this.debugBoard = this.display();
+      this.outcome = ONGOING; //if the game was over before the last move, it would not be possible to get here
 
 			return true;
 		}
 
 		return false;
-	}
-
-	/**
-	 * Gets a location of a cell, and returns values denoting the count of the neighbors: total, whites, blacks, empties.
-	 */
-	getNeighbors(row, col) {
-		var empties = 0;
-		var whites = 0;
-		var blacks = 0;
-
-		console.assert(col >= 0 && row >= 0 && col <= this.cols && row <= this.rows);
-
-		for (let r = Math.max(row - 1, 0); r <= Math.min(row + 1, this.rows - 1); r++) {
-			for (let c = Math.max(col - 1, 0); c <= Math.min(col + 1, this.cols - 1); c++) {
-				if (r === row && c === col) continue;
-
-				switch (this.board[r][c]) {
-					case WHITE:
-						whites++;
-						break;
-					case BLACK:
-						blacks++;
-						break;
-					default:
-						empties++;
-				}
-			}
-		}
-		return { whites, blacks, empties };
 	}
 
 	/**
@@ -397,16 +352,18 @@ class Board {
 	 */
 	assessment() {
 		// return a quick result if it's game over
-		if (this.outcome !== ONGOING) return this.outcome;
+    if (this.outcome !== ONGOING) 
+      return this.outcome;
 
 		var remainingWhite = this.getTurnsRemaining(true);
 		var remainingBlack = this.getTurnsRemaining(false);
 		var whitePoints = 0;
 		var blackPoints = 0;
 
+    // assess points based on token position alone
 		for (let r = 0; r < this.rows; r++)
 			for (let c = 0; c < this.cols; c++) {
-				let { whites, blacks } = this.getNeighbors(r, c);
+				
 				let points = 0;
 
 				if (r < this.rows / 2) points += r;
@@ -416,25 +373,25 @@ class Board {
 				else points += this.cols - c;
 
 				if (this.board[r][c] === WHITE) {
-					whitePoints += points + whites - blacks;
+					whitePoints += points;
 				} else if (this.board[r][c] === BLACK) {
-					blackPoints += points + blacks - whites;
+					blackPoints += points;
 				}
-			}
-
+      }
+    
 		// adjust the advantage based on who has more turns to go
 		let advantageFactor = 1 / this.turnsRemaining;
 
 		if (remainingBlack > remainingWhite) blackPoints *= 1 + advantageFactor;
 		else if (remainingWhite > remainingBlack) whitePoints *= 1 + advantageFactor;
-		//same number of moves remaining
-		else {
-			// give a slight first-movers advantage
-			if (this.whiteMoves) whitePoints *= 1 + advantageFactor / 3;
-			else blackPoints *= 1 + advantageFactor / 3;
-		}
+    
+    // give a slight first-movers advantage
+      if (this.whiteMoves) 
+        whitePoints *= 1 + advantageFactor / 2;
+      else
+        blackPoints *= 1 + advantageFactor / 2;
 
-		// go through all sequences of length 2 until (but lower than) winSequence
+		// go through all sequences of length 2 until (but lower than) winSequence because game is ongoing
 		for (let i = this.winSequence - 1; i >= 2; i--) {
 			whitePoints += Math.pow(this.findAllSeq(true, i), 3);
 			blackPoints += Math.pow(this.findAllSeq(false, i), 3);
@@ -806,6 +763,7 @@ class ReactGame extends React.Component {
 
 var CalcTotal = 0; 
 var CalcInstance = 0;
+var debugCounter = 0; //!!
 
 var slider = document.getElementById("myRange");
 var computerLevel = slider.value;
