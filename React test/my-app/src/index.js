@@ -22,10 +22,10 @@ class Board {
 	winSequence;
 	whiteMoves;
 	totalMoves;
-  board;
+	board;
 	turnsRemaining;
 	outcome;
-  gameLog;
+	gameLog;
 
 	constructor(rows, cols, winSequence) {
 		//error handling
@@ -55,7 +55,7 @@ class Board {
 		newGame.totalMoves = this.totalMoves;
 		newGame.turnsRemaining = this.turnsRemaining;
 		newGame.gameLog = this.gameLog.slice();
-    newGame.outcome = this.outcome;
+		newGame.outcome = this.outcome;
 
 		//clone the board itself
 		newGame.board = new Array(this.rows);
@@ -75,13 +75,12 @@ class Board {
 		this.whiteMoves = true;
 		this.turnsRemaining = this.cols * this.rows;
 		this.outcome = ONGOING;
-    this.gameLog = new Array();
-    
+		this.gameLog = new Array();
+
 		this.board = new Array(this.rows);
 		for (let r = 0; r < this.rows; r++) {
 			this.board[r] = new Array(this.cols);
-      for (let c = 0; c < this.cols; c++) 
-        this.board[r][c] = EMPTY;
+			for (let c = 0; c < this.cols; c++) this.board[r][c] = EMPTY;
 		}
 	}
 
@@ -121,10 +120,10 @@ class Board {
 	 * @param {boolean} sideWhite Which side's remaining turns should be returned.
 	 */
 	getTurnsRemaining(sideWhite) {
-    if ((sideWhite && this.whiteMoves) || (!sideWhite && !this.whiteMoves))
-      return Math.ceil(this.turnsRemaining / 2);
-    else  //requested for black
-      return Math.floor(this.turnsRemaining / 2);
+		if ((sideWhite && this.whiteMoves) || (!sideWhite && !this.whiteMoves))
+			return Math.ceil(this.turnsRemaining / 2);
+		//requested for black
+		else return Math.floor(this.turnsRemaining / 2);
 	}
 
 	/**
@@ -163,7 +162,7 @@ class Board {
 				if (sum === seqLength * (sideWhite ? WHITE : BLACK))
 					if (this.getTurnsRemaining(sideWhite) >= emptyCells)
 						// only count this if the requested side has enough moves remaining to theoretically occupy this sequence
-            count++;
+						count++;
 			}
 			row++;
 		}
@@ -193,7 +192,7 @@ class Board {
 				if (sum === seqLength * (sideWhite ? WHITE : BLACK))
 					if (this.getTurnsRemaining(sideWhite) >= emptyCells)
 						// only count this if the requested side has enough moves remaining to theoretically occupy this sequence
-            count++;
+						count++;
 			}
 
 			col++;
@@ -223,7 +222,7 @@ class Board {
 				if (sum === seqLength * (sideWhite ? WHITE : BLACK))
 					if (this.getTurnsRemaining(sideWhite) >= emptyCells)
 						// only count this if the requested side has enough moves remaining to theoretically occupy this sequence
-            count++;
+						count++;
 			}
 		}
 
@@ -243,14 +242,13 @@ class Board {
 				if (sum === seqLength * (sideWhite ? WHITE : BLACK))
 					if (this.getTurnsRemaining(sideWhite) >= emptyCells)
 						// only count this if the requested side has enough moves remaining to theoretically occupy this sequence
-            count++;
+						count++;
 			}
 		}
 		return count;
 	}
 
 	findAllSeq(sideWhite, seqLength) {
-
 		return (
 			this.findSeqInRow(sideWhite, seqLength) +
 			this.findSeqInCol(sideWhite, seqLength) +
@@ -298,11 +296,11 @@ class Board {
 		for (let r = 0; r < this.rows; r++) {
 			if (this.board[r][c] === EMPTY) {
 				this.board[r][c] = this.whiteMoves ? WHITE : BLACK;
-        
- 				this.gameLog.push({
+
+				this.gameLog.push({
 					side: this.whiteMoves ? "White" : "Black",
 					row: r,
-          col: parseInt(c, 10),
+					col: parseInt(c, 10),
 				}); //add move to game log
 
 				this.whiteMoves = !this.whiteMoves;
@@ -334,7 +332,7 @@ class Board {
 			this.whiteMoves = !this.whiteMoves; //change side
 			this.totalMoves--;
 			this.turnsRemaining++;
-      this.outcome = ONGOING; //if the game was over before the last move, it would not be possible to get here
+			this.outcome = ONGOING; //if the game was over before the last move, it would not be possible to get here
 
 			return true;
 		}
@@ -352,18 +350,16 @@ class Board {
 	 */
 	assessment() {
 		// return a quick result if it's game over
-    if (this.outcome !== ONGOING) 
-      return this.outcome;
+		if (this.outcome !== ONGOING) return this.outcome;
 
 		var remainingWhite = this.getTurnsRemaining(true);
 		var remainingBlack = this.getTurnsRemaining(false);
 		var whitePoints = 0;
 		var blackPoints = 0;
 
-    // assess points based on token position alone
+		// assess points based on token position alone
 		for (let r = 0; r < this.rows; r++)
 			for (let c = 0; c < this.cols; c++) {
-				
 				let points = 0;
 
 				if (r < this.rows / 2) points += r;
@@ -377,27 +373,33 @@ class Board {
 				} else if (this.board[r][c] === BLACK) {
 					blackPoints += points;
 				}
-      }
-    
+			}
+
 		// adjust the advantage based on who has more turns to go
 		let advantageFactor = 1 / this.turnsRemaining;
 
 		if (remainingBlack > remainingWhite) blackPoints *= 1 + advantageFactor;
 		else if (remainingWhite > remainingBlack) whitePoints *= 1 + advantageFactor;
-    
-    // give a slight first-movers advantage
-      if (this.whiteMoves) 
-        whitePoints *= 1 + advantageFactor / 2;
-      else
-        blackPoints *= 1 + advantageFactor / 2;
 
-		// go through all sequences of length 2 until (but lower than) winSequence because game is ongoing
-		for (let i = this.winSequence - 1; i >= 2; i--) {
-			whitePoints += Math.pow(this.findAllSeq(true, i), 3);
-			blackPoints += Math.pow(this.findAllSeq(false, i), 3);
+		// give a slight first-movers advantage
+		if (this.whiteMoves) whitePoints *= 1 + advantageFactor / 2;
+		else blackPoints *= 1 + advantageFactor / 2;
+
+		// go through all sequences of length 1 until (but lower than) winSequence because game is ongoing
+		for (let i = this.winSequence - 1; i >= 1; i--) {
+			let whiteSeq = this.findAllSeq(true, i);
+			let blackSeq = this.findAllSeq(false, i);
+			if (i === this.winSequence - 1) {
+				if (whiteSeq > 0 && this.whiteMoves) return WHITE_WIN - 1;
+				if (blackSeq > 0 && !this.whiteMoves) return BLACK_WIN + 1;
+			}
+			whitePoints += whiteSeq * i * i * i;
+			blackPoints += blackSeq * i * i * i;
 		}
 
-		return whitePoints - blackPoints;
+		let ret = whitePoints - blackPoints;
+
+		return ret;
 	}
 
 	/**
@@ -452,23 +454,19 @@ class Board {
 			for (const move of legalMoves) {
 				let tempBoard = this.clone();
 				tempBoard.move(move);
-        const advisedPlay = tempBoard.play(ply - 1, false, null);
+				const advisedPlay = tempBoard.play(ply - 1, false, null);
 
 				if (this.whiteMoves) {
 					if (advisedPlay.bestAssessment > assessment) {
 						bestMove = move;
 						assessment = advisedPlay.bestAssessment;
 					}
-					// if (assessment >= WHITE_WIN) //save time as optimal move already found
-					// break;
 				} // black
 				else {
 					if (advisedPlay.bestAssessment < assessment) {
 						bestMove = move;
 						assessment = advisedPlay.bestAssessment;
 					}
-					// if (assessment <= BLACK_WIN) //save time as optimal move already found
-					//     break;
 				}
 			}
 
@@ -485,7 +483,7 @@ class Board {
 //// ******************* React Front-end ******************************************
 
 const COMPUTER_WHITE = false;
-const COMPUTER_MAX_POSITIONS = 12000;
+const COMPUTER_MAX_POSITIONS = 40000;
 const WHITE_TOKEN = "⚪";
 const BLACK_TOKEN = "⚫";
 const RESTART_GAME = 1;
@@ -516,12 +514,10 @@ function HighlightedSquare(props) {
 }
 
 class ReactBoard extends React.Component {
-
 	renderSquare(r, c) {
-    if (this.props.highlightRow === r && this.props.highlightCol === c)
-        return <HighlightedSquare value={this.props.squares[r][c]} onClick={() => this.props.onClick(r, c)} />;
-    else
-		    return <Square value={this.props.squares[r][c]} onClick={() => this.props.onClick(r, c)} />;
+		if (this.props.highlightRow === r && this.props.highlightCol === c)
+			return <HighlightedSquare value={this.props.squares[r][c]} onClick={() => this.props.onClick(r, c)} />;
+		else return <Square value={this.props.squares[r][c]} onClick={() => this.props.onClick(r, c)} />;
 	}
 
 	render() {
@@ -560,8 +556,8 @@ class ReactGame extends React.Component {
 	}
 
 	resetState() {
-    CalcTotal = 0; //!!
-    CalcInstance = 0;//!!
+		//!!CalcTotal = 0;
+		//!!CalcInstance = 0;
 		this.highlightRow = null;
 		this.highlightCol = null;
 		this.game = new Board(gameRows, gameColumns, gameSeq);
@@ -571,41 +567,37 @@ class ReactGame extends React.Component {
 
 		var firstMove = null;
 
-    var board = new Array(gameRows);
+		var board = new Array(gameRows);
 		for (let r = 0; r < gameRows; r++) {
 			board[r] = new Array(gameColumns);
 			for (let c = 0; c < board[r].length; c++) board[r][c] = null;
-    }
-    
-    this.state.squares = board;
+		}
 
-		if (this.computerWhite)
-      this.playComputer(false);
+		this.state.squares = board;
+
+		if (this.computerWhite) this.playComputer(false);
 	}
 
-  /**
-   * Makes a computer move if possible both on the game logic and the UI
-   * @param {*} switchSides should UI playing sides be switched following this computer move?
-   */
-  playComputer (switchSides) {
-
-    var perf = Date.now();//!!
+	/**
+	 * Makes a computer move if possible both on the game logic and the UI
+	 * @param {*} switchSides should UI playing sides be switched following this computer move?
+	 */
+	playComputer(switchSides) {
+		//!!var perf = Date.now();
 
 		let computerMove = this.game.play(this.gamePly, true, computerLevel).advisedMove;
 		if (computerMove != null) {
 			let row = this.game.move(computerMove);
-      if (switchSides)
-      {
-        this.computerWhite = !this.game.whiteMoves;
-      }
-      this.state.squares[row][computerMove] = this.computerWhite ? WHITE_TOKEN : BLACK_TOKEN;
-      this.highlightRow = row;
-      this.highlightCol = computerMove;
-      CalcTotal += (Date.now() - perf);//!!
-      CalcInstance++;//!!
-    }
-
-  }
+			if (switchSides) {
+				this.computerWhite = !this.game.whiteMoves;
+			}
+			this.state.squares[row][computerMove] = this.computerWhite ? WHITE_TOKEN : BLACK_TOKEN;
+			this.highlightRow = row;
+			this.highlightCol = computerMove;
+			//!!CalcTotal += (Date.now() - perf);
+			//!!CalcInstance++;
+		}
+	}
 
 	handleClick(r, c) {
 		//var board = this.state.squares;
@@ -621,10 +613,10 @@ class ReactGame extends React.Component {
 		}
 
 		// Human plays
-    this.state.squares[row][c] = this.computerWhite ? BLACK_TOKEN : WHITE_TOKEN;
+		this.state.squares[row][c] = this.computerWhite ? BLACK_TOKEN : WHITE_TOKEN;
 
-    // Computer plays
-    this.playComputer(false);
+		// Computer plays
+		this.playComputer(false);
 
 		this.setState({});
 	}
@@ -641,19 +633,17 @@ class ReactGame extends React.Component {
 					const lastRow = lastMove.row;
 					const lastCol = lastMove.col;
 					this.game.takeback();
-          this.state.squares[lastRow][lastCol] = null;
-          this.computerWhite = !this.game.whiteMoves;
-          this.highlightRow = lastRow;
-          this.highlightCol = lastCol;
-        }
-        else
-        {
-          this.highlightRow = null;
-        }
+					this.state.squares[lastRow][lastCol] = null;
+					this.computerWhite = !this.game.whiteMoves;
+					this.highlightRow = lastRow;
+					this.highlightCol = lastCol;
+				} else {
+					this.highlightRow = null;
+				}
 				break;
 
 			case PLAY_COMPUTER:
-        this.playComputer(true);
+				this.playComputer(true);
 				break;
 
 			case RESIZE_BOARD:
@@ -717,15 +707,19 @@ class ReactGame extends React.Component {
 		} // ongoing game
 		else status = "You play " + (this.game.whiteMoves ? WHITE_TOKEN : BLACK_TOKEN);
 
-    let calc = CalcTotal/CalcInstance;//!!
-
+		//!!let calc = CalcTotal/CalcInstance;
+		//!! <div>Average time: {calc}</div>
 		return (
 			<div className="game">
 				<div className="game-board">
-					<ReactBoard squares={this.state.squares} highlightRow={this.highlightRow} highlightCol={this.highlightCol} onClick={(r, c) => this.handleClick(r, c)} />
+					<ReactBoard
+						squares={this.state.squares}
+						highlightRow={this.highlightRow}
+						highlightCol={this.highlightCol}
+						onClick={(r, c) => this.handleClick(r, c)}
+					/>
 				</div>
 				<div className="game-info">
-          <div>Average time: {calc}</div> 
 					<div>Drop your tokens to form any line of {this.game.winSequence}!</div>
 					<br></br>
 					<div>{status}</div>
@@ -736,21 +730,29 @@ class ReactGame extends React.Component {
 						</li>
 						<br></br>
 						<li>
-              <div class="tooltip"><span class="tooltiptext">Take back a single move. Click twice to undo both your turn as well as the computer's.</span>
-							<button onClick={() => this.jumpTo(TAKEBACK)}>{"Take back"}</button>
-              </div>
+							<div class="tooltip">
+								<span class="tooltiptext">
+									Take back a single move. Click twice to undo both your turn as well as the
+									computer's.
+								</span>
+								<button onClick={() => this.jumpTo(TAKEBACK)}>{"Take back"}</button>
+							</div>
 						</li>
 						<br></br>
 						<li>
-            <div class="tooltip"><span class="tooltiptext">Force the computer to make the next move, which you can do to switch sides.</span>
-							<button onClick={() => this.jumpTo(PLAY_COMPUTER)}>{"Play computer"}</button>
-              </div>
+							<div class="tooltip">
+								<span class="tooltiptext">
+									Force the computer to make the next move, which you can do to switch sides.
+								</span>
+								<button onClick={() => this.jumpTo(PLAY_COMPUTER)}>{"Play computer"}</button>
+							</div>
 						</li>
 						<br></br>
 						<li>
-            <div class="tooltip"><span class="tooltiptext">Start a new game with your own board properties.</span>
-							<button onClick={() => this.jumpTo(RESIZE_BOARD)}>{"Resize board"}</button>
-              </div>
+							<div class="tooltip">
+								<span class="tooltiptext">Start a new game with your own board properties.</span>
+								<button onClick={() => this.jumpTo(RESIZE_BOARD)}>{"Resize board"}</button>
+							</div>
 						</li>
 					</ol>
 				</div>
@@ -761,9 +763,8 @@ class ReactGame extends React.Component {
 
 // ========================================
 
-var CalcTotal = 0; 
+var CalcTotal = 0;
 var CalcInstance = 0;
-var debugCounter = 0; //!!
 
 var slider = document.getElementById("myRange");
 var computerLevel = slider.value;
