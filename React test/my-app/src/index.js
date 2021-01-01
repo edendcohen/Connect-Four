@@ -139,7 +139,6 @@ class Board {
 				return Math.floor(this.turnsRemaining / 2);
 			}
 		}
-		console.assert(true);
 	}
 
 	/**
@@ -635,8 +634,22 @@ class ReactGame extends React.Component {
 		this.state.squares = board;
 	}
 
+  playComputer (switchSides) {
+		let computerMove = this.game.play(this.gamePly, true, computerLevel).advisedMove;
+		if (computerMove != null) {
+			let row = this.game.move(computerMove);
+      if (switchSides)
+      {
+        this.computerWhite = !this.game.whiteMoves;
+      }
+      this.state.squares[row][computerMove] = this.computerWhite ? WHITE_TOKEN : BLACK_TOKEN;
+      this.highlightRow = row;
+      this.highlightCol = computerMove;
+    }
+  }
+
 	handleClick(r, c) {
-		var board = this.state.squares;
+		//var board = this.state.squares;
 
 		if (this.game.outcome !== ONGOING) {
 			return;
@@ -649,20 +662,12 @@ class ReactGame extends React.Component {
 		}
 
 		// Human plays
-		board[row][c] = this.computerWhite ? BLACK_TOKEN : WHITE_TOKEN;
+    this.state.squares[row][c] = this.computerWhite ? BLACK_TOKEN : WHITE_TOKEN;
 
-		// Computer plays
-		let computerMove = this.game.play(this.gamePly, true, computerLevel).advisedMove;
-		if (computerMove != null) {
-			row = this.game.move(computerMove);
-      board[row][computerMove] = this.computerWhite ? WHITE_TOKEN : BLACK_TOKEN;
-      this.highlightRow = row;
-		  this.highlightCol = computerMove;
-			}
+    // Computer plays
+    this.playComputer(false);
 
-		this.setState({
-			squares: board,
-		});
+		this.setState({});
 	}
 
 	jumpTo(actionType) {
@@ -678,6 +683,7 @@ class ReactGame extends React.Component {
 					const lastCol = lastMove.col;
 					this.game.takeback();
           this.state.squares[lastRow][lastCol] = null;
+          this.computerWhite = !this.game.whiteMoves;
           this.highlightRow = lastRow;
           this.highlightCol = lastCol;
         }
@@ -688,15 +694,7 @@ class ReactGame extends React.Component {
 				break;
 
 			case PLAY_COMPUTER:
-				let computerMove = this.game.play(this.gamePly, true).advisedMove;
-				if (computerMove != null) {
-					//if a move is possible (game not over yet)
-					let row = this.game.move(computerMove);
-					this.computerWhite = !this.game.whiteMoves;
-          this.state.squares[row][computerMove] = this.computerWhite ? WHITE_TOKEN : BLACK_TOKEN;
-          this.highlightRow = row;
-          this.highlightCol = computerMove;    
-				}
+        this.playComputer(true);
 				break;
 
 			case RESIZE_BOARD:
@@ -776,15 +774,21 @@ class ReactGame extends React.Component {
 						</li>
 						<br></br>
 						<li>
+              <div class="tooltip"><span class="tooltiptext">Take back a single move. Click twice to undo both your turn as well as the computer's.</span>
 							<button onClick={() => this.jumpTo(TAKEBACK)}>{"Take back"}</button>
+              </div>
 						</li>
 						<br></br>
 						<li>
+            <div class="tooltip"><span class="tooltiptext">Force the computer to make the next move, which you can do to switch sides.</span>
 							<button onClick={() => this.jumpTo(PLAY_COMPUTER)}>{"Play computer"}</button>
+              </div>
 						</li>
 						<br></br>
 						<li>
+            <div class="tooltip"><span class="tooltiptext">Start a new game with your own board properties.</span>
 							<button onClick={() => this.jumpTo(RESIZE_BOARD)}>{"Resize board"}</button>
+              </div>
 						</li>
 					</ol>
 				</div>
@@ -794,6 +798,9 @@ class ReactGame extends React.Component {
 }
 
 // ========================================
+
+var CalcTotal = 0; 
+var CalcInstance = 0;
 
 var slider = document.getElementById("myRange");
 var computerLevel = slider.value;
