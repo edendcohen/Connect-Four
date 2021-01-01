@@ -1,10 +1,14 @@
 body {
-  font: 14px "Century Gothic", Futura, sans-serif;
-  margin: 20px;
+  font: 11px "Century Gothic", Futura, sans-serif;
+  margin: 14px;
 }
 
 ol, ul {
-  padding-left: 20px;
+  padding-left: 12px;
+}
+
+button {
+  font-size: 10px;
 }
 
 .board-row:after {
@@ -21,15 +25,15 @@ ol, ul {
   background: rgb(230, 252, 255);
   border: 1px solid rgb(6, 109, 228);
   float: left;
-  font-size: 26px;
+  font-size: 14px;
   font-weight: bold;
-  line-height: 40px;
-  height: 40px;
+  line-height: 30px;
+  height: 30px;
   margin-right: -1px;
   margin-top: -1px;
   padding: 0;
   text-align: center;
-  width: 40px;
+  width: 30px;
 }
 
 .square:focus {
@@ -46,7 +50,7 @@ ol, ul {
 }
 
 .game-info {
-  margin-left: 16px;
+  margin-left: 12px;
 }
 
 .slidecontainer {
@@ -57,7 +61,7 @@ ol, ul {
 .slider {
   -webkit-appearance: none;  /* Override default CSS styles */
   appearance: none;
-  width:14%; /* Full-width */
+  width:10%; /* Full-width */
   height: 10px; /* Specified height */
   background: #6598d3; /* Grey background */
   outline: none; /* Remove outline */
@@ -78,12 +82,5 @@ ol, ul {
   width: 20px; /* Set a specific slider handle width */
   height: 20px; /* Slider handle height */
   background: #001aff; /* Green background */
-  cursor: pointer; /* Cursor on hover */
-}
-
-.slider::-moz-range-thumb {
-  width: 25px; /* Set a specific slider handle width */
-  height: 25px; /* Slider handle height */
-  background: #4CAF50; /* Green background */
   cursor: pointer; /* Cursor on hover */
 }
