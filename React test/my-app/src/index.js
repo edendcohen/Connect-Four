@@ -179,7 +179,6 @@ class Board {
 						// only count this if the requested side has enough moves remaining to theoretically occupy this sequence
 						count++;
 			}
-
 			row++;
 		}
 
@@ -496,7 +495,7 @@ class Board {
 			for (const move of legalMoves) {
 				let tempBoard = this.clone();
 				tempBoard.move(move);
-				const advisedPlay = tempBoard.play(ply - 1, false, null);
+        const advisedPlay = tempBoard.play(ply - 1, false, null);
 
 				if (this.whiteMoves) {
 					if (advisedPlay.bestAssessment > assessment) {
@@ -604,6 +603,8 @@ class ReactGame extends React.Component {
 	}
 
 	resetState() {
+    CalcTotal = 0; //!!
+    CalcInstance = 0;//!!
 		this.highlightRow = null;
 		this.highlightCol = null;
 		this.game = new Board(gameRows, gameColumns, gameSeq);
@@ -613,28 +614,26 @@ class ReactGame extends React.Component {
 
 		var firstMove = null;
 
-		if (this.computerWhite) {
-			firstMove = this.game.play(this.gamePly, true, computerLevel).advisedMove;
-      this.game.move(firstMove);
-      this.highlightRow = 0;
-		  this.highlightCol = firstMove;
-		}
-
-		var board = new Array(gameRows);
+    var board = new Array(gameRows);
 		for (let r = 0; r < gameRows; r++) {
 			board[r] = new Array(gameColumns);
 			for (let c = 0; c < board[r].length; c++) board[r][c] = null;
-		}
+    }
+    
+    this.state.squares = board;
 
-		if (this.computerWhite) {
-			console.assert(firstMove != null);
-			board[0][firstMove] = WHITE_TOKEN;
-		}
-
-		this.state.squares = board;
+		if (this.computerWhite)
+      this.playComputer(false);
 	}
 
+  /**
+   * Makes a computer move if possible both on the game logic and the UI
+   * @param {*} switchSides should UI playing sides be switched following this computer move?
+   */
   playComputer (switchSides) {
+
+    var perf = Date.now();//!!
+
 		let computerMove = this.game.play(this.gamePly, true, computerLevel).advisedMove;
 		if (computerMove != null) {
 			let row = this.game.move(computerMove);
@@ -645,7 +644,10 @@ class ReactGame extends React.Component {
       this.state.squares[row][computerMove] = this.computerWhite ? WHITE_TOKEN : BLACK_TOKEN;
       this.highlightRow = row;
       this.highlightCol = computerMove;
+      CalcTotal += (Date.now() - perf);//!!
+      CalcInstance++;//!!
     }
+
   }
 
 	handleClick(r, c) {
@@ -758,12 +760,15 @@ class ReactGame extends React.Component {
 		} // ongoing game
 		else status = "You play " + (this.game.whiteMoves ? WHITE_TOKEN : BLACK_TOKEN);
 
+    let calc = CalcTotal/CalcInstance;//!!
+
 		return (
 			<div className="game">
 				<div className="game-board">
 					<ReactBoard squares={this.state.squares} highlightRow={this.highlightRow} highlightCol={this.highlightCol} onClick={(r, c) => this.handleClick(r, c)} />
 				</div>
 				<div className="game-info">
+          <div>Average time: {calc}</div> 
 					<div>Drop your tokens to form any line of {this.game.winSequence}!</div>
 					<br></br>
 					<div>{status}</div>
