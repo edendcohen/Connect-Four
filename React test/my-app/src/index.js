@@ -552,9 +552,21 @@ function Square(props) {
 	);
 }
 
+function HighlightedSquare(props) {
+	return (
+		<button className="highlightedsquare" onClick={props.onClick}>
+			{props.value}
+		</button>
+	);
+}
+
 class ReactBoard extends React.Component {
+
 	renderSquare(r, c) {
-		return <Square value={this.props.squares[r][c]} onClick={() => this.props.onClick(r, c)} />;
+    if (this.props.highlightRow === r && this.props.highlightCol === c)
+        return <HighlightedSquare value={this.props.squares[r][c]} onClick={() => this.props.onClick(r, c)} />;
+    else
+		    return <Square value={this.props.squares[r][c]} onClick={() => this.props.onClick(r, c)} />;
 	}
 
 	render() {
@@ -582,8 +594,8 @@ class ReactGame extends React.Component {
 	game;
 	gamePly;
 	computerWhite;
-	lastRow;
-	lastCol;
+	highlightRow;
+	highlightCol;
 
 	constructor(props) {
 		super(props);
@@ -593,8 +605,8 @@ class ReactGame extends React.Component {
 	}
 
 	resetState() {
-		this.lastRow = null;
-		this.lastCol = null;
+		this.highlightRow = null;
+		this.highlightCol = null;
 		this.game = new Board(gameRows, gameColumns, gameSeq);
 
 		// how many moves to search ahead based on the max number of positions defined (speed trade-off)
@@ -604,7 +616,9 @@ class ReactGame extends React.Component {
 
 		if (this.computerWhite) {
 			firstMove = this.game.play(this.gamePly, true, computerLevel).advisedMove;
-			this.game.move(firstMove);
+      this.game.move(firstMove);
+      this.highlightRow = 0;
+		  this.highlightCol = firstMove;
 		}
 
 		var board = new Array(gameRows);
@@ -641,7 +655,9 @@ class ReactGame extends React.Component {
 		let computerMove = this.game.play(this.gamePly, true, computerLevel).advisedMove;
 		if (computerMove != null) {
 			row = this.game.move(computerMove);
-			board[row][computerMove] = this.computerWhite ? WHITE_TOKEN : BLACK_TOKEN;
+      board[row][computerMove] = this.computerWhite ? WHITE_TOKEN : BLACK_TOKEN;
+      this.highlightRow = row;
+		  this.highlightCol = computerMove;
 			}
 
 		this.setState({
@@ -661,8 +677,14 @@ class ReactGame extends React.Component {
 					const lastRow = lastMove.row;
 					const lastCol = lastMove.col;
 					this.game.takeback();
-					this.state.squares[lastRow][lastCol] = null;
-				}
+          this.state.squares[lastRow][lastCol] = null;
+          this.highlightRow = lastRow;
+          this.highlightCol = lastCol;
+        }
+        else
+        {
+          this.highlightRow = null;
+        }
 				break;
 
 			case PLAY_COMPUTER:
@@ -671,7 +693,9 @@ class ReactGame extends React.Component {
 					//if a move is possible (game not over yet)
 					let row = this.game.move(computerMove);
 					this.computerWhite = !this.game.whiteMoves;
-					this.state.squares[row][computerMove] = this.computerWhite ? WHITE_TOKEN : BLACK_TOKEN;
+          this.state.squares[row][computerMove] = this.computerWhite ? WHITE_TOKEN : BLACK_TOKEN;
+          this.highlightRow = row;
+          this.highlightCol = computerMove;    
 				}
 				break;
 
@@ -739,7 +763,7 @@ class ReactGame extends React.Component {
 		return (
 			<div className="game">
 				<div className="game-board">
-					<ReactBoard squares={this.state.squares} onClick={(r, c) => this.handleClick(r, c)} />
+					<ReactBoard squares={this.state.squares} highlightRow={this.highlightRow} highlightCol={this.highlightCol} onClick={(r, c) => this.handleClick(r, c)} />
 				</div>
 				<div className="game-info">
 					<div>Drop your tokens to form any line of {this.game.winSequence}!</div>
